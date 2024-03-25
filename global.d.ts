@@ -1,14 +1,14 @@
 import type { Webflow } from '@finsweet/ts-utils';
 
-export type ENV = 'dev' | 'prod';
+export type SCRIPTS_ENV = 'dev' | 'prod';
 
 declare global {
   interface Window {
     JS_SCRIPTS: Set<string> | undefined;
     Webflow: Webflow;
 
-    ENV: ENV;
-    setENV(env: ENV): void;
+    SCRIPTS_ENV: ENV;
+    setScriptsENV(env: ENV): void;
 
     IS_DEBUG_MODE: boolean;
     setDebugMode(mode: boolean): void;

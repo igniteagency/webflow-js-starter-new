@@ -1,21 +1,22 @@
-import type { ENV } from 'global';
+import type { SCRIPTS_ENV } from 'global';
 
 const ENV_LOCALSTORAGE_ID = 'jsEnv';
 
-window.ENV = getENV();
+window.SCRIPTS_ENV = getENV();
 
-window.setENV = (env) => {
+window.setScriptsENV = (env) => {
   if (env !== 'dev' && env !== 'prod') {
     console.error('Invalid environment. Pass `dev` or `prod`');
     return;
   }
 
   localStorage.setItem(ENV_LOCALSTORAGE_ID, env);
+  window.SCRIPTS_ENV = env;
   console.log(`Environment successfully set to ${env}`);
 };
 
-function getENV(): ENV {
-  const localStorageItem = localStorage.getItem(ENV_LOCALSTORAGE_ID) as ENV;
+function getENV(): SCRIPTS_ENV {
+  const localStorageItem = localStorage.getItem(ENV_LOCALSTORAGE_ID) as SCRIPTS_ENV;
   return localStorageItem || 'prod';
 }
 

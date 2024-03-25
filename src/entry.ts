@@ -3,15 +3,14 @@
  * Fetches scripts from localhost or production site depending on the setup
  * Polls `localhost` on page load, else falls back to deriving code from production URL
  */
-import './dev/env';
+import { SCRIPTS_LOADED_EVENT } from './constants';
 import './dev/debug';
+import './dev/env';
 
 const LOCALHOST_BASE = 'http://localhost:3000/';
-const PRODUCTION_BASE = 'https://cdn.jsdelivr.net/gh/igniteagency/webflow-js-starter/dist/';
+const PRODUCTION_BASE = 'https://cdn.jsdelivr.net/gh/igniteagency/{{repo}}/dist/prod/';
 
 window.JS_SCRIPTS = new Set();
-
-export const SCRIPTS_LOADED_EVENT = 'scriptsLoaded';
 
 const SCRIPT_LOAD_PROMISES: Array<Promise<unknown>> = [];
 
@@ -22,15 +21,17 @@ window.addEventListener('DOMContentLoaded', addJS);
  * Sets an object `window.isLocal` and adds all the set scripts using the `window.JS_SCRIPTS` Set
  */
 function addJS() {
-  console.log(`Current mode: ${window.ENV}`);
+  console.log(`Current mode: ${window.SCRIPTS_ENV}`);
 
-  if (window.ENV === 'dev') {
+  if (window.SCRIPTS_ENV === 'dev') {
     fetchLocalScripts();
+  } else {
+    appendScripts();
   }
 }
 
 function appendScripts() {
-  const BASE = window.ENV === 'dev' ? LOCALHOST_BASE : PRODUCTION_BASE;
+  const BASE = window.SCRIPTS_ENV === 'dev' ? LOCALHOST_BASE : PRODUCTION_BASE;
 
   window.JS_SCRIPTS?.forEach((url) => {
     const script = document.createElement('script');
@@ -73,13 +74,10 @@ function fetchLocalScripts() {
     })
     .catch(() => {
       console.error('localhost not resolved. Switching to production');
-      window.setENV('prod');
+      window.setScriptsENV('prod');
     })
     .finally(() => {
       clearTimeout(localhostFetchTimeout);
       appendScripts();
     });
 }
-
-window.Webflow = window.Webflow || [];
-window.Webflow.push(() => {});
