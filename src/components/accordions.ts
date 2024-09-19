@@ -24,9 +24,9 @@ export function animatedDetailsAccordions() {
       const isOpening = !accordion.open;
 
       if (isOpening) {
+        accordion.open = true;
         const height = accordionContentEl.scrollHeight;
         accordionContentEl.style.height = '0px';
-        accordion.open = true;
         accordionContentEl.animate([{ height: '0px' }, { height: `${height}px` }], {
           duration: ANIMATION_DURATION_IN_MS,
           fill: 'forwards',
