@@ -1,6 +1,6 @@
 import type { Webflow } from '@finsweet/ts-utils';
 
-export type SCRIPTS_ENV = 'dev' | 'prod';
+export type SCRIPTS_SOURCES = 'local' | 'cdn';
 
 declare global {
   interface Window {
@@ -8,14 +8,14 @@ declare global {
     Webflow: Webflow;
 
     SCRIPTS_ENV: ENV;
-    setScriptsENV(env: ENV): void;
+    setScriptSource(env: ENV): void;
 
     IS_DEBUG_MODE: boolean;
     setDebugMode(mode: boolean): void;
-    /**
-     * A wrapper function to directly console log when debug mode is active
-     */
-    DEBUG: (...args: any[]) => void;
+
+    PRODUCTION_BASE: string;
+
+    loadExternalScript(url: string, placement: 'head' | 'body', defer: boolean): void;
   }
 
   // Extend `querySelector` and `querySelectorAll` function to stop the nagging of converting `Element` to `HTMLElement` all the time
