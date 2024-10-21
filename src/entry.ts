@@ -4,7 +4,7 @@
  * Polls `localhost` on page load, else falls back to deriving code from production URL
  */
 import { SCRIPTS_LOADED_EVENT } from './constants';
-import './dev/scripts-source';
+import './dev/script-source';
 
 const LOCALHOST_BASE = 'http://localhost:3000/';
 window.PRODUCTION_BASE = 'https://cdn.jsdelivr.net/gh/igniteagency/{{repo}}/dist/prod/';
