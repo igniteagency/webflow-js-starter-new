@@ -1,4 +1,8 @@
 import type { Webflow } from '@finsweet/ts-utils';
+import type GSAP from 'gsap';
+import type ScrollTrigger from 'gsap/ScrollTrigger';
+
+import type { loadExternalScript } from '$utils/external-script-embed';
 
 export type SCRIPTS_SOURCES = 'local' | 'cdn';
 
@@ -15,7 +19,10 @@ declare global {
 
     PRODUCTION_BASE: string;
 
-    loadExternalScript(url: string, placement: 'head' | 'body', defer: boolean): void;
+    loadExternalScript: typeof loadExternalScript;
+
+    gsap: GSAP;
+    ScrollTrigger: typeof ScrollTrigger;
   }
 
   // Extend `querySelector` and `querySelectorAll` function to stop the nagging of converting `Element` to `HTMLElement` all the time
