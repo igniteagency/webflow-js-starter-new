@@ -5,6 +5,8 @@
  */
 import { SCRIPTS_LOADED_EVENT } from 'src/constants';
 
+import '$utils/external-script-embed';
+
 import './dev/debug';
 import './dev/script-source';
 
