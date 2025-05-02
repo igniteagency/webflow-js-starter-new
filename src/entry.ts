@@ -11,6 +11,7 @@ import './dev/debug';
 import './dev/script-source';
 
 const LOCALHOST_BASE = 'http://localhost:3000/';
+const consoleHighlightStyle = 'color: red;';
 window.PRODUCTION_BASE = 'https://cdn.jsdelivr.net/gh/igniteagency/{{repo}}/dist/prod/';
 
 window.JS_SCRIPTS = new Set();
@@ -24,16 +25,20 @@ window.addEventListener('DOMContentLoaded', addJS);
  * Adds all the set scripts to the `window.JS_SCRIPTS` Set
  */
 function addJS() {
-  console.debug(`Current script mode: ${window.SCRIPTS_ENV}`);
+  console.debug(`Current script loading mode: %c${window.SCRIPTS_ENV}`, consoleHighlightStyle);
 
   if (window.SCRIPTS_ENV === 'local') {
     console.debug(
-      "To run JS scripts from production CDN, execute `window.setScriptSource('cdn')` in the browser console"
+      "To run JS scripts from production CDN, execute `%csetScriptSource('cdn')%c` in the browser console",
+      consoleHighlightStyle,
+      ''
     );
     fetchLocalScripts();
   } else {
     console.debug(
-      "To run JS scripts from localhost, execute `window.setScriptSource('local')` in the browser console"
+      "To run JS scripts from localhost, execute `%csetScriptSource('local')%c` in the browser console",
+      consoleHighlightStyle,
+      ''
     );
     appendScripts();
   }
