@@ -12,4 +12,3 @@ pnpm-lock.yaml
 bun.lockb
 dist/dev
 **/.DS_Store
-.DS_Store
