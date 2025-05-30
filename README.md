@@ -39,57 +39,70 @@ The project will process and output the files mentioned in the `files` const of 
    <script src="http://localhost:3000/entry.js"></script>
    ```
 
-2. Add scripts to the Webflow site global settings/page-level, as required, by adding the script path (`.js` instead of `.ts`) to the `window.JS_SCRIPTS` set. **Do not include `/src` in the file path.**
+2. **Load scripts dynamically using `window.loadScript`**
 
-   ```html
-   <script>
-     window.JS_SCRIPTS.add('{FILE_PATH_1}');
-     window.JS_SCRIPTS.add('{FILE_PATH_2}');
-   </script>
-   ```
+   You can load any script (relative to your repo or a full CDN URL) as a module using the global `window.loadScript` function. This is the recommended way to load scripts in this setup.
 
-   Example:
-   ```html
-   <script>
-     window.JS_SCRIPTS.add('global.js');
-   </script>
+   **Usage:**
+   ```js
+   // Load a relative script (from CDN or localhost, depending on env)
+   window.loadScript('global.js');
+
+   // Load an external library from a CDN, with options
+   window.loadScript('https://cdn.jsdelivr.net/npm/some-lib@1.0.0/dist/index.js', {
+     placement: 'head', // 'head' or 'body' (default: 'body')
+     scriptName: 'some-lib', // Optional: emits a custom event 'scriptLoaded:some-lib' when loaded
+     defer: true, // (default: true)
+     isModule: true // (default: true)
+   });
    ```
+   - All scripts are loaded as ES modules by default.
+   - The function deduplicates by URL (won't load the same script twice).
+   - You can listen for a custom event when a script is loaded:
+
+      ```js
+      document.addEventListener('scriptLoaded:some-lib', (e) => {
+        // e.detail.url, e.detail.scriptName
+        // Your code here
+      });
+      ```
+
+   - **Options:**
+     - `placement`: `'head' | 'body'` (default: `'body'`)
+     - `defer`: `boolean` (default: `true`)
+     - `isModule`: `boolean` (default: `true`)
+     - `scriptName`: `string` (optional, for custom event)
+
+   **Do not use the old `window.JS_SCRIPTS` set or batch loading. Use `window.loadScript` for all dynamic script loading.**
 
 3. Whilst working locally, run `bun run dev` to start a development server on [localhost:3000](http://localhost:3000)
    - Alternatively, `pnpm run dev` or `npm run dev`
 
-4. Execute `window.setScriptSource('local')` in the browser console to serve the file from localhost. If local server is not running, it will error out and automatically serve from CDN instead. This preference is saved in the browser's localstorage.
+4. To switch between serving scripts from localhost or CDN, use the following in your browser console:
 
-   - To switch back to CDN serving mode, execute `window.setScriptSource('cdn')` from console.
+   - To serve scripts from localhost (when running the dev server):
+     ```js
+     window.setScriptMode('local');
+     ```
+   - To switch back to CDN serving mode:
+     ```js
+     window.setScriptMode('cdn');
+     ```
+   This preference is saved in the browser's localStorage. If the local server is not running, it will automatically fall back to CDN.
 
-5. As changes are made to the code locally and saved, the [localhost:3000](http://localhost:3000) will then serve those files
-
-#### Code execution
-
-To execute code after all the scripts have loaded, the script loader emits an event listener on the `window` object. This can come in handy when you want to ensure a certain imported library from another script file has loaded before executing it.
-
-You can use that as following:
-
-   ```html
-   <script>
-      import { SCRIPTS_LOADED_EVENT } from 'src/constants';
-      window.addEventListener(SCRIPTS_LOADED_EVENT, () => {
-         // code to execute after all scripts have loaded
-      });
-   </script>
-   ```
+5. As you make changes to your code locally and save, the [localhost:3000](http://localhost:3000) server will serve those files.
 
 #### Debugging
 
 - Add any debug console logs in the code using the `console.debug` function instead of `console.log`. This way, they can be toggled on/off using the browser native "Verbose/Debug" level.
-- There is an optional debug mode setup for development that can execute conditional logic using `window.IS_DEBUG` check. Execute `window.setDebugMode(true)` in the browser console to enable the debug mode. Execute `window.setDebugModse(false)` to disable the mode.
+- There is an optional debug mode setup for development that can execute conditional logic using `window.IS_DEBUG` check. Execute `window.setDebugMode(true)` in the browser console to enable the debug mode. Execute `window.setDebugMode(false)` to disable the mode.
 
-### Production CDN
+### Publishing the code to CDN
 
 1. Run `bun run build` to generate the production files in `./dist/prod` folder
    - Alternatively, `pnpm run build` or `npm run build`
 
-2. To push code to production, merge the working branch into `main`. A Github Actions workflow will run tagging that version with an incremented [semver](https://semver.org/)) tag. Once pushed, the production code will be auto loaded from [jsDelivr CDN](https://www.jsdelivr.net/).
+2. To push code to production, merge the working branch into `main`. A Github Actions workflow will run tagging that version with an incremented [semver](https://semver.org/) tag. Once pushed, the production code will be auto loaded from [jsDelivr CDN](https://www.jsdelivr.com/).
    - By default, the version bump is a patch (`x.y.{{patch number}}`). To bump the version by a higher amount, mention a hashtag in the merge commit message, like `#major` or `#minor`
 
 3. To create separate environments for `dev` and `staging`, respective branches can be used, and the [jsDelivr file path can be set to load the latest scripts from those respective branches](https://www.jsdelivr.com/documentation#id-github). Note: The [caching for branches lasts 12 hours](https://www.jsdelivr.com/documentation#id-caching) and would hence require a manual purge.

@@ -2,6 +2,7 @@
   "extends": ["@finsweet"],
   "rules": {
     "no-console": "off",
-    "simple-import-sort/imports": "off"
+    "simple-import-sort/imports": "off",
+    "@typescript-eslint/no-explicit-any": "off"
   }
 }

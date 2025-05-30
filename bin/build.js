@@ -1,3 +1,4 @@
+import browserslistToEsbuild from 'browserslist-to-esbuild';
 import esbuild from 'esbuild';
 import fs from 'fs';
 import path from 'path';
@@ -5,14 +6,15 @@ import path from 'path';
 const DEV_BUILD_PATH = './dist/dev';
 const PROD_BUILD_PATH = './dist/prod';
 const production = process.env.NODE_ENV === 'production';
+const productionTarget = browserslistToEsbuild('defaults');
 
 const BUILD_DIRECTORY = !production ? DEV_BUILD_PATH : PROD_BUILD_PATH;
 
 const files = [
-  './src/*.ts',
+  './src/entry.ts',
+  './src/global.ts',
   './src/components/**/*.ts',
   './src/pages/**/*.ts',
-  './src/utils/**/*.ts',
 ];
 
 const buildSettings = {
@@ -22,7 +24,8 @@ const buildSettings = {
   minify: !production ? false : true,
   sourcemap: !production,
   treeShaking: true,
-  target: production ? 'es2017' : 'esnext',
+  platform: 'browser',
+  target: production ? productionTarget : 'esnext',
 };
 
 // Function to recursively delete directory contents
@@ -41,18 +44,24 @@ const deleteDirectoryContents = (dirPath) => {
   }
 };
 
-// Clean the build directory before starting the build
-deleteDirectoryContents(BUILD_DIRECTORY);
+try {
+  // Clean the build directory before starting the build
+  deleteDirectoryContents(BUILD_DIRECTORY);
 
-if (!production) {
-  let ctx = await esbuild.context(buildSettings);
+  if (!production) {
+    let ctx = await esbuild.context(buildSettings);
 
-  let { port } = await ctx.serve({
-    servedir: BUILD_DIRECTORY,
-    port: 3000,
-  });
+    let { port } = await ctx.serve({
+      servedir: BUILD_DIRECTORY,
+      port: 3000,
+    });
 
-  console.log(`Serving at http://localhost:${port}`);
-} else {
-  esbuild.build(buildSettings).catch(() => process.exit(1));
+    console.log(`Serving at http://localhost:${port}`);
+  } else {
+    console.log(productionTarget);
+    esbuild.build(buildSettings);
+  }
+} catch (error) {
+  console.error(error);
+  process.exit(1);
 }
