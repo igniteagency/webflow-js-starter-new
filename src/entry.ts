@@ -18,7 +18,15 @@ export interface ScriptOptions {
   [key: string]: unknown;
 }
 
-window.PRODUCTION_BASE = 'https://cdn.jsdelivr.net/gh/igniteagency/{{repo}}/dist/prod/';
+function getProductionBase(branch = '') {
+  const branchPrefix = '' === branch ? '' : `@${branch}`;
+  return `https://cdn.jsdelivr.net/gh/igniteagency/{{repo}}${branchPrefix}/dist/prod/`;
+}
+
+window.PRODUCTION_BASE = !window.location.hostname.includes('webflow.io')
+  ? getProductionBase()
+  : getProductionBase('dev');
+
 const relativePathBase = window.SCRIPTS_ENV === 'local' ? LOCAL_SERVER : window.PRODUCTION_BASE;
 
 /**
