@@ -29,6 +29,8 @@ window.PRODUCTION_BASE = !window.location.hostname.includes('webflow.io')
 
 const relativePathBase = window.SCRIPTS_ENV === 'local' ? LOCAL_SERVER : window.PRODUCTION_BASE;
 
+window.SCRIPT_BASE = relativePathBase;
+
 /**
  * Loads a script either from the JS repo, or accepts a direct library URL too
  * Examples:

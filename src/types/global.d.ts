@@ -41,6 +41,8 @@ declare global {
 
     PRODUCTION_BASE: string;
 
+    SCRIPT_BASE: string;
+
     loadScript: (
       url: string,
       options?: ScriptOptions,
