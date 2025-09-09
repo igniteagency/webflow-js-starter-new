@@ -143,6 +143,7 @@ document.addEventListener('scriptLoaded:library-name', (e) => {
 - Scripts are loaded as IIFE by default
 - Never handle user data or sensitive information in this codebase
 - Do not use batch script loading; always use `window.loadScript` for dynamic loading
+- **For any library dependency related information, do confirm the fact by doing a web search on the respective documentation instead of making a guess**
 
 ## Git Workflow
 
