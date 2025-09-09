@@ -1,3 +1,4 @@
+import { DEV_SERVER } from '$dev/config';
 import { CONSOLE_STYLES } from '$dev/console-styles';
 
 export type SCRIPTS_ENV = 'local' | 'cdn';
@@ -6,7 +7,6 @@ export const ENV_NAMES: Record<SCRIPTS_ENV, string> = {
   cdn: 'CDN',
 };
 
-export const LOCAL_SERVER = 'http://localhost:3000/';
 const ENV_LOCALSTORAGE_ID = 'jsEnv';
 
 window.SCRIPTS_ENV = getENV();
@@ -38,7 +38,7 @@ function getENV(): SCRIPTS_ENV {
   if (localStorageItem === 'local') {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 150);
-    fetch(LOCAL_SERVER, { method: 'HEAD', cache: 'no-store', signal: controller.signal })
+    fetch(DEV_SERVER, { method: 'HEAD', cache: 'no-store', signal: controller.signal })
       .catch(() => {
         console.log('Localhost server is not available, switching to production mode');
         localStorage.setItem(ENV_LOCALSTORAGE_ID, 'cdn');

@@ -1,6 +1,6 @@
+import { DEV_SERVER } from '$dev/config';
 import '$dev/debug';
 import '$dev/env';
-import { LOCAL_SERVER } from '$dev/env';
 
 /**
  * Entry point for the build system.
@@ -27,7 +27,7 @@ window.PRODUCTION_BASE = !window.location.hostname.includes('webflow.io')
   ? getProductionBase()
   : getProductionBase('dev');
 
-const relativePathBase = window.SCRIPTS_ENV === 'local' ? LOCAL_SERVER : window.PRODUCTION_BASE;
+const relativePathBase = window.SCRIPTS_ENV === 'local' ? DEV_SERVER : window.PRODUCTION_BASE;
 
 window.SCRIPT_BASE = relativePathBase;
 

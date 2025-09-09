@@ -1,7 +1,9 @@
 import browserslistToEsbuild from 'browserslist-to-esbuild';
+import { spawn } from 'child_process';
 import esbuild from 'esbuild';
 import fs from 'fs';
-import path from 'path';
+
+import { DEV_PORT, DEV_SERVER } from '$dev/config';
 
 const DEV_BUILD_PATH = './dist/dev';
 const PROD_BUILD_PATH = './dist/prod';
@@ -28,19 +30,10 @@ const buildSettings = {
   target: production ? productionTarget : 'esnext',
 };
 
-// Function to recursively delete directory contents
 const deleteDirectoryContents = (dirPath) => {
   if (fs.existsSync(dirPath)) {
-    fs.readdirSync(dirPath).forEach((file) => {
-      const currentPath = path.join(dirPath, file);
-      if (fs.lstatSync(currentPath).isDirectory()) {
-        // Recurse if the current path is a directory
-        deleteDirectoryContents(currentPath);
-      } else {
-        // Delete file
-        fs.unlinkSync(currentPath);
-      }
-    });
+    fs.rmSync(dirPath, { recursive: true });
+    fs.mkdirSync(dirPath, { recursive: true });
   }
 };
 
@@ -50,16 +43,23 @@ try {
 
   if (!production) {
     let ctx = await esbuild.context(buildSettings);
+    await ctx.watch();
 
-    let { port } = await ctx.serve({
-      servedir: BUILD_DIRECTORY,
-      port: 3000,
-      cors: {
-        origin: '*',
-      },
+    const httpServer = spawn(
+      './node_modules/.bin/http-server',
+      [BUILD_DIRECTORY, '-p', DEV_PORT.toString(), '-a', '::1', '--cors', '-s'],
+      {
+        stdio: 'pipe',
+      }
+    );
+
+    console.log(`Serving at ${DEV_SERVER}`);
+
+    process.on('SIGINT', () => {
+      httpServer.kill();
+      ctx.dispose();
+      process.exit();
     });
-
-    console.log(`Serving at http://localhost:${port}`);
   } else {
     console.log(productionTarget);
     esbuild.build(buildSettings);
