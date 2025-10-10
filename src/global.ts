@@ -24,6 +24,8 @@ window.Webflow?.push(() => {
   initComponents();
   UIFunctions();
   webflowOverrides();
+
+  loadScrollTimelineCSSPolyfill();
 });
 
 function initComponents() {
@@ -37,4 +39,8 @@ function UIFunctions() {
 
 function webflowOverrides() {
   disableWebflowAnchorSmoothScroll();
+}
+
+function loadScrollTimelineCSSPolyfill() {
+  window.loadScript('https://flackr.github.io/scroll-timeline/dist/scroll-timeline.js');
 }

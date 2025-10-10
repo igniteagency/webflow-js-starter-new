@@ -27,6 +27,10 @@ class Dialog {
         return;
       }
 
+      dialogEl.addEventListener('close', () => {
+        this.closeDialog(dialogEl, true);
+      });
+
       const openTriggersList = document.querySelectorAll(`[${this.DATA_ATTR_OPEN}="${id}"]`);
       const closeTriggersList = dialogEl.querySelectorAll(`[${this.DATA_ATTR_CLOSE}="${id}"]`);
 
@@ -52,16 +56,20 @@ class Dialog {
       detail: { dialogId: dialogEl.getAttribute(this.DATA_ATTR) },
     });
     dialogEl.dispatchEvent(dialogOpenEvent);
+    window.WF_IX.emit('onDialogOpen', {}, dialogEl);
   }
 
-  private closeDialog(dialogEl: HTMLDialogElement) {
-    dialogEl.close();
+  private closeDialog(dialogEl: HTMLDialogElement, isAlreadyClosed = false) {
+    if (!isAlreadyClosed) {
+      dialogEl.close();
+    }
 
     // new custom event
     const dialogCloseEvent = new CustomEvent('dialogClose', {
       detail: { dialogId: dialogEl.getAttribute(this.DATA_ATTR) },
     });
     dialogEl.dispatchEvent(dialogCloseEvent);
+    window.WF_IX.emit('onDialogClose', {}, dialogEl);
   }
 
   /**
