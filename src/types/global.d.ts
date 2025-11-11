@@ -1,6 +1,5 @@
 import type { Webflow } from '@finsweet/ts-utils';
 import type GSAP from 'gsap';
-import type ScrollSmoother from 'gsap/ScrollSmoother';
 import type ScrollTrigger from 'gsap/ScrollTrigger';
 import type SplitText from 'gsap/SplitText';
 import type jQuery from 'jquery';
@@ -10,13 +9,13 @@ import type { SCRIPTS_ENV } from '$dev/env';
 
 interface Webflow_IX3 extends Webflow.require {
   emit: (
-    eventName: string, 
-    details?: any, 
-    targetElement?: Element | null, 
+    eventName: string,
+    details?: any,
+    targetElement?: Element | null,
     options?: { bubbles?: boolean }
   ) => void;
   destroy: () => void;
-  async ready: () => Promise<void>;
+  ready: () => Promise<void>;
 }
 
 declare global {
@@ -63,18 +62,14 @@ declare global {
       attr?: Record<string, string>
     ) => Promise<void>;
 
+    loadCSS: (url: string) => Promise<void>;
+
     /**
      * Conditionally load a script if a selector is found on the page
      * @param selector CSS selector to check for existence
      * @param url Internal or third party URL of the script to load. Directly feeds into loadScript
      */
-    conditionalLoadScript: (
-      selector: string,
-      url: string,
-    ) => void;
-
-    // Custom Scripts
-    smoother: ScrollSmoother;
+    conditionalLoadScript: (selector: string, url: string) => void;
 
     jQuery: typeof jQuery;
   }
