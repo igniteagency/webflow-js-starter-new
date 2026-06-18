@@ -9,6 +9,5 @@ node_modules/
 .npmrc
 package-lock.json
 pnpm-lock.yaml
-bun.lockb
 dist/dev
 **/.DS_Store

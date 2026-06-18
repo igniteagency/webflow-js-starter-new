@@ -25,6 +25,7 @@ window.setScriptMode = (env) => {
 
   localStorage.setItem(ENV_LOCALSTORAGE_ID, env);
   window.SCRIPTS_ENV = env;
+  window.SCRIPT_BASE = env === 'local' ? LOCAL_SERVER : window.PRODUCTION_BASE;
 
   console.log(
     `JS scripts environment successfully set to %c${ENV_NAMES[env]}`,

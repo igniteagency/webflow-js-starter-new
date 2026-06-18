@@ -2,6 +2,7 @@ import browserslistToEsbuild from 'browserslist-to-esbuild';
 import esbuild from 'esbuild';
 import fs from 'fs';
 import path from 'path';
+import glob from 'tiny-glob';
 
 const DEV_BUILD_PATH = './dist/dev';
 const PROD_BUILD_PATH = './dist/prod';
@@ -10,12 +11,28 @@ const productionTarget = browserslistToEsbuild('defaults');
 
 const BUILD_DIRECTORY = !production ? DEV_BUILD_PATH : PROD_BUILD_PATH;
 
-const files = [
+const ENTRY_PATTERNS = [
   './src/entry.ts',
   './src/global.ts',
   './src/components/**/*.ts',
   './src/pages/**/*.ts',
 ];
+
+const files = (
+  await Promise.all(
+    ENTRY_PATTERNS.map(async (pattern) => {
+      try {
+        return await glob(pattern, { filesOnly: true });
+      } catch (error) {
+        if (error?.code === 'ENOENT') {
+          return [];
+        }
+
+        throw error;
+      }
+    })
+  )
+).flat();
 
 const buildSettings = {
   entryPoints: files,
@@ -61,8 +78,7 @@ try {
 
     console.log(`Serving at http://localhost:${port}`);
   } else {
-    console.log(productionTarget);
-    esbuild.build(buildSettings);
+    await esbuild.build(buildSettings);
   }
 } catch (error) {
   console.error(error);
