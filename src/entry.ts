@@ -14,6 +14,7 @@ export interface ScriptOptions {
   defer?: boolean;
   isModule?: boolean;
   name?: string;
+  scriptName?: string;
   // allow any other new option name here
   [key: string]: unknown;
 }
@@ -27,9 +28,11 @@ window.PRODUCTION_BASE = !window.location.hostname.includes('webflow.io')
   ? getProductionBase()
   : getProductionBase('dev');
 
-const relativePathBase = window.SCRIPTS_ENV === 'local' ? LOCAL_SERVER : window.PRODUCTION_BASE;
+function getScriptBase() {
+  return window.SCRIPTS_ENV === 'local' ? LOCAL_SERVER : window.PRODUCTION_BASE;
+}
 
-window.SCRIPT_BASE = relativePathBase;
+window.SCRIPT_BASE = getScriptBase();
 
 /**
  * Loads a script either from the JS repo, or accepts a direct library URL too
@@ -49,18 +52,20 @@ window.SCRIPT_BASE = relativePathBase;
 window.loadScript = function (url, options, attr?: Record<string, string>): Promise<void> {
   const opts: ScriptOptions = {
     placement: 'body',
+    defer: true,
+    isModule: false,
     name: undefined,
+    scriptName: undefined,
     ...options,
   };
 
-  const attributes: Record<string, string> = {
-    defer: 'true',
-    ...attr,
-  };
+  const attributes: Record<string, string> = { ...attr };
+  const scriptName = opts.scriptName || opts.name;
+  window.SCRIPT_BASE = getScriptBase();
 
   // Work with both relative repo paths and direct CDN URLs
-  const isAbsolute = url.startsWith('https://');
-  const finalUrl = isAbsolute ? url : relativePathBase + url;
+  const isAbsolute = /^https?:\/\//.test(url);
+  const finalUrl = isAbsolute ? url : window.SCRIPT_BASE + url;
 
   if (document.querySelector(`script[src="${finalUrl}"]`)) {
     return Promise.resolve();
@@ -69,14 +74,20 @@ window.loadScript = function (url, options, attr?: Record<string, string>): Prom
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');
     script.src = finalUrl;
+    if (opts.defer) {
+      script.defer = true;
+    }
+    if (opts.isModule) {
+      script.type = 'module';
+    }
     Object.entries(attributes).forEach(([key, value]) => {
       script.setAttribute(key, value);
     });
     script.onload = () => {
-      if (opts.name) {
+      if (scriptName) {
         document.dispatchEvent(
-          new CustomEvent(`scriptLoaded:${opts.name}`, {
-            detail: { url: finalUrl, name: opts.name },
+          new CustomEvent(`scriptLoaded:${scriptName}`, {
+            detail: { url: finalUrl, name: scriptName, scriptName },
           })
         );
       }

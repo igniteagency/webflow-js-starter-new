@@ -41,7 +41,7 @@ The project will process and output the files mentioned in the `files` const of 
 
 2. **Load scripts dynamically using `window.loadScript`**
 
-   You can load any script (relative to your repo or a full CDN URL) as a module using the global `window.loadScript` function. This is the recommended way to load scripts in this setup.
+   You can load any script relative to your repo, or a full CDN URL, using the global `window.loadScript` function. This is the recommended way to load scripts in this setup.
 
    **Usage:**
    ```js
@@ -53,16 +53,16 @@ The project will process and output the files mentioned in the `files` const of 
      placement: 'head', // 'head' or 'body' (default: 'body')
      scriptName: 'some-lib', // Optional: emits a custom event 'scriptLoaded:some-lib' when loaded
      defer: true, // (default: true)
-     isModule: true // (default: true)
+     isModule: false // (default: false)
    });
    ```
-   - All scripts are loaded as ES modules by default.
+   - Scripts are loaded as classic scripts by default, matching the IIFE build output.
    - The function deduplicates by URL (won't load the same script twice).
    - You can listen for a custom event when a script is loaded:
 
       ```js
       document.addEventListener('scriptLoaded:some-lib', (e) => {
-        // e.detail.url, e.detail.scriptName
+        // e.detail.url, e.detail.name, e.detail.scriptName
         // Your code here
       });
       ```
@@ -70,7 +70,7 @@ The project will process and output the files mentioned in the `files` const of 
    - **Options:**
      - `placement`: `'head' | 'body'` (default: `'body'`)
      - `defer`: `boolean` (default: `true`)
-     - `isModule`: `boolean` (default: `true`)
+     - `isModule`: `boolean` (default: `false`)
      - `scriptName`: `string` (optional, for custom event)
 
    **Do not use the old `window.JS_SCRIPTS` set or batch loading. Use `window.loadScript` for all dynamic script loading.**
