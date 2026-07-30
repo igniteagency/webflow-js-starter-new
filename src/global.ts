@@ -1,4 +1,5 @@
 import { animatedDetailsAccordions } from '$components/accordions';
+import { initDetailsGroups } from '$components/details';
 import Dialog from '$components/dialog';
 import { setCurrentYear } from '$utils/current-year';
 import '$utils/disable-webflow-scroll';
@@ -34,6 +35,7 @@ function initComponents() {
 
 function UIFunctions() {
   duplicateMarqueeList();
+  initDetailsGroups();
   animatedDetailsAccordions();
 }
 
