@@ -19,14 +19,11 @@ export interface ScriptOptions {
   [key: string]: unknown;
 }
 
-function getProductionBase(branch = '') {
-  const branchPrefix = '' === branch ? '' : `@${branch}`;
-  return `https://cdn.jsdelivr.net/gh/igniteagency/{{repo}}${branchPrefix}/dist/prod/`;
+function getProductionBase() {
+  return 'https://cdn.jsdelivr.net/gh/igniteagency/webflow-js-starter-new/dist/prod/';
 }
 
-window.PRODUCTION_BASE = !window.location.hostname.includes('webflow.io')
-  ? getProductionBase()
-  : getProductionBase('dev');
+window.PRODUCTION_BASE = getProductionBase();
 
 function getScriptBase() {
   return window.SCRIPTS_ENV === 'local' ? LOCAL_SERVER : window.PRODUCTION_BASE;

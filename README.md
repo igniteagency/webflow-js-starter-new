@@ -11,16 +11,16 @@ In essence, it uses bun to start a development server on [localhost:3000](http:/
 ### Prerequisites
 
 - Have [bun](https://bun.sh/) installed locally. Installation guidelines [here](https://bun.sh/docs/installation) (recommended approach - homebrew / curl)
-   - Alternatively, `pnpm` or `npm` will work too.
+  - Alternatively, `pnpm` or `npm` will work too.
 
 ### Setup
 
 - Run `bun install`
-   - Alternatively, `pnpm install` or `npm install`
+  - Alternatively, `pnpm install` or `npm install`
 
 ## Usage
 
-After repository migration, update the repo name and URL in this README file, and the `./src/entry.ts`.
+After duplicating or migrating the Starter, update the repository name in this README, `src/entry.ts`, and the Webflow site-head `entry.js` URL.
 
 ### Output
 
@@ -31,10 +31,11 @@ The project will process and output the files mentioned in the `files` const of 
 1. The initial `entry.js` file needs to be made available via external server first for this system to work (in the `<head>` area of the site).
 
    ```html
-   <script src="https://cdn.jsdelivr.net/gh/igniteagency/{{repo}}/dist/prod/entry.js"></script>
+   <script src="https://cdn.jsdelivr.net/gh/igniteagency/webflow-js-starter-new/dist/prod/entry.js"></script>
    ```
 
    For occasional localhost testing when editing `entry.js`, you'll have to manually include that script like following:
+
    ```html
    <script src="http://localhost:3000/entry.js"></script>
    ```
@@ -44,6 +45,7 @@ The project will process and output the files mentioned in the `files` const of 
    You can load any script relative to your repo, or a full CDN URL, using the global `window.loadScript` function. This is the recommended way to load scripts in this setup.
 
    **Usage:**
+
    ```js
    // Load a relative script (from CDN or localhost, depending on env)
    window.loadScript('global.js');
@@ -53,19 +55,19 @@ The project will process and output the files mentioned in the `files` const of 
      placement: 'head', // 'head' or 'body' (default: 'body')
      scriptName: 'some-lib', // Optional: emits a custom event 'scriptLoaded:some-lib' when loaded
      defer: true, // (default: true)
-     isModule: false // (default: false)
+     isModule: false, // (default: false)
    });
    ```
    - Scripts are loaded as classic scripts by default, matching the IIFE build output.
    - The function deduplicates by URL (won't load the same script twice).
    - You can listen for a custom event when a script is loaded:
 
-      ```js
-      document.addEventListener('scriptLoaded:some-lib', (e) => {
-        // e.detail.url, e.detail.name, e.detail.scriptName
-        // Your code here
-      });
-      ```
+     ```js
+     document.addEventListener('scriptLoaded:some-lib', (e) => {
+       // e.detail.url, e.detail.name, e.detail.scriptName
+       // Your code here
+     });
+     ```
 
    - **Options:**
      - `placement`: `'head' | 'body'` (default: `'body'`)
@@ -74,6 +76,34 @@ The project will process and output the files mentioned in the `files` const of 
      - `scriptName`: `string` (optional, for custom event)
 
    **Do not use the old `window.JS_SCRIPTS` set or batch loading. Use `window.loadScript` for all dynamic script loading.**
+
+### Native details groups
+
+`global.js` automatically treats any parent with two or more direct-child `<details>` elements as one exclusive disclosure group. No activation attribute is required.
+
+```html
+<div>
+  <details open>...</details>
+  <details>...</details>
+</div>
+```
+
+- Each inferred group receives a unique shared native `name`.
+- Nested disclosures are excluded from the outer group because only direct siblings are grouped.
+- Authored `[open]` state is preserved.
+- `.tabbed-content_tabs` opens its first direct child only when none is authored open.
+- `data-accordion-open` is reserved for Webflow Designer preview state and is ignored at published runtime.
+- Browsers without native named-details support receive a scoped `toggle` fallback.
+- Disclosure animation belongs to progressive-enhancement CSS in Webflow, not JavaScript.
+
+For the uncommon case where direct sibling disclosures must remain independently open, opt out on their parent:
+
+```html
+<div data-details-group="false">
+  <details>...</details>
+  <details>...</details>
+</div>
+```
 
 3. Whilst working locally, run `bun run dev` to start a development server on [localhost:3000](http://localhost:3000)
    - Alternatively, `pnpm run dev` or `npm run dev`
@@ -88,6 +118,7 @@ The project will process and output the files mentioned in the `files` const of 
      ```js
      window.setScriptMode('cdn');
      ```
+
    This preference is saved in the browser's localStorage. If the local server is not running, it will automatically fall back to CDN.
 
 5. As you make changes to your code locally and save, the [localhost:3000](http://localhost:3000) server will serve those files.
@@ -105,8 +136,8 @@ The project will process and output the files mentioned in the `files` const of 
 2. To push code to production, merge the working branch into `main`. A Github Actions workflow will run tagging that version with an incremented [semver](https://semver.org/) tag. Once pushed, the production code will be auto loaded from [jsDelivr CDN](https://www.jsdelivr.com/).
    - By default, the version bump is a patch (`x.y.{{patch number}}`). To bump the version by a higher amount, mention a hashtag in the merge commit message, like `#major` or `#minor`
 
-3. To create separate environments for `dev` and `staging`, respective branches can be used, and the [jsDelivr file path can be set to load the latest scripts from those respective branches](https://www.jsdelivr.com/documentation#id-github). Note: The [caching for branches lasts 12 hours](https://www.jsdelivr.com/documentation#id-caching) and would hence require a manual purge.
-   - To do so, override the `window.PRODUCTION_BASE` variable in the HTML file after the inclusion of `entry.js` script.
+3. Production and pre-launch Webflow sites load the repository's default `main` branch. Use a `dev` branch override only for an explicitly requested dev-only test. Branch URLs are cached and may require a manual jsDelivr purge.
+   - For an explicit dev-only test, override `window.PRODUCTION_BASE` after including `entry.js`, then remove the override before production delivery.
 
 #### jsDelivr Notes & Caveats
 
