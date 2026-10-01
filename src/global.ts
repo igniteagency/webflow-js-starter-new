@@ -35,6 +35,10 @@ function initComponents() {
 function UIFunctions() {
   duplicateMarqueeList();
   initDetailsGroups();
+  window.conditionalLoadScript(
+    '[data-el="switching-tabs-component"], .switcing-tabs_component, .switching-tabs_component',
+    'components/switching-tabs.js'
+  );
 }
 
 function webflowOverrides() {

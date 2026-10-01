@@ -96,6 +96,49 @@ The project will process and output the files mentioned in the `files` const of 
 - Browsers without native named-details support receive a scoped `toggle` fallback.
 - Disclosure animation belongs to progressive-enhancement CSS in Webflow, not JavaScript.
 
+### Switching tabs
+
+`Section / Switching Tabs` nests each panel `details` so they are not direct siblings. `details.ts` therefore cannot exclusive-group them. `global.js` loads `components/switching-tabs.js` when the component is on the page.
+
+That script only:
+
+- exclusive-opens one nested `details` at a time
+- autoplays on desktop while the component is in view
+- toggles `.is-out-of-view` so the loader CSS can pause
+
+Do not animate panel height in JS. Use the same site `details::details-content` CSS as FAQs. `preventDefault` on summary clicks is required here so native toggle does not fight exclusive switch / autoplay.
+
+Component CSS embed:
+
+```html
+<style>
+  [data-el='switching-tabs-component'],
+  .switcing-tabs_component {
+    --autoplay-timer: 6s;
+  }
+
+  .switching-tabs_item:has(.accordions_item_component[open])
+    .switching-tabs_loader-wrap
+    > .switching-tabs_loader-line {
+    animation: loaderLine var(--autoplay-timer, 6s) linear forwards;
+  }
+
+  .switcing-tabs_component.is-out-of-view .switching-tabs_loader-line,
+  [data-el='switching-tabs-component'].is-out-of-view .switching-tabs_loader-line {
+    animation: none;
+  }
+
+  @keyframes loaderLine {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(0%);
+    }
+  }
+</style>
+```
+
 For the uncommon case where direct sibling disclosures must remain independently open, opt out on their parent:
 
 ```html

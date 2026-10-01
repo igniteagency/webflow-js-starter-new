@@ -25,7 +25,8 @@ This is a Webflow JavaScript starter project where JavaScript/TypeScript is auth
 - Preserve authored `[open]` state. `data-accordion-open` is a Webflow Designer preview control and must not set published runtime state.
 - `.tabbed-content_tabs` opens its first item only when no direct child is authored open.
 - Native shared `name` owns exclusivity; unsupported browsers use only the scoped `toggle` fallback.
-- Do not intercept summary clicks or animate disclosure height in JavaScript. Webflow CSS owns progressive enhancement.
+- Do not intercept summary clicks or animate disclosure height in JavaScript for normal accordions. Webflow CSS owns progressive enhancement.
+- `src/components/switching-tabs.ts` is the exception: nested tab `details` are not siblings, so JS exclusive-switches and autoplays only. Still do not animate height in JS. Load it via `conditionalLoadScript` from `global.ts`.
 
 ### Build System
 
