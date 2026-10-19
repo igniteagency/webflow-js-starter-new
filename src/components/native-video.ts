@@ -1,7 +1,6 @@
 function show(element: HTMLElement | null, visible: boolean) {
   if (!element) return;
   element.hidden = !visible;
-  element.style.display = visible ? '' : 'none';
 }
 
 function time(seconds: number) {
@@ -17,7 +16,7 @@ export function initNativeVideo(root: HTMLElement) {
   if (!video || !toggle || root.dataset.videoReady) return;
   const controlsMode = video.dataset.videoPlayer?.toLowerCase() === 'true';
   const doc = root.ownerDocument;
-  const controls = find<HTMLElement>('controls');
+
   const status = find<HTMLElement>('status');
   const seek = find<HTMLInputElement>('seek');
   const elapsed = find<HTMLElement>('time');
@@ -40,9 +39,7 @@ export function initNativeVideo(root: HTMLElement) {
   video.style.objectFit = controlsMode ? 'contain' : 'cover';
   root.dataset.videoMode = controlsMode ? 'controls' : 'background';
   root.dataset.videoReady = 'true';
-  show(toggle, true);
-  show(controls, true);
-  for (const element of [seek, elapsed, mute, volume]) show(element, controlsMode);
+
   show(status, false);
   const message = (text: string) => {
     if (status) status.textContent = text;
@@ -119,7 +116,7 @@ export function initNativeVideo(root: HTMLElement) {
       doc.fullscreenElement === root ? 'Exit fullscreen' : 'Enter fullscreen'
     );
   };
-  show(fullscreen, controlsMode && !!doc.fullscreenEnabled && !!root.requestFullscreen);
+  if (fullscreen) fullscreen.disabled = !doc.fullscreenEnabled || !root.requestFullscreen;
   fullscreen?.addEventListener('click', () => {
     const operation =
       doc.fullscreenElement === root ? doc.exitFullscreen() : root.requestFullscreen();

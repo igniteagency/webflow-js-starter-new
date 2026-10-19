@@ -36,7 +36,7 @@ function fixture(player = false, reduced = false) {
     },
   };
   const toggle = {
-    hidden: true,
+    hidden: false,
     style: {},
     addEventListener(name, fn) {
       this.click = fn;
@@ -70,7 +70,7 @@ function fixture(player = false, reduced = false) {
   const elements = { player: video, toggle, 'play-icon': playIcon, 'pause-icon': pauseIcon };
   for (const name of ['controls', 'status', 'seek', 'time', 'mute', 'volume', 'fullscreen']) {
     elements[name] = {
-      hidden: true,
+      hidden: name === 'status',
       style: {},
       value: '',
       addEventListener(event, fn) {
@@ -101,6 +101,19 @@ function fixture(player = false, reduced = false) {
     listeners,
   };
 }
+
+test('mode visibility remains owned by authored Webflow conditionals', () => {
+  for (const mode of [false, true]) {
+    const f = fixture(mode);
+    for (const name of ['toggle', 'controls', 'seek', 'time', 'mute', 'volume', 'fullscreen']) {
+      Object.defineProperty(f.elements[name], 'hidden', {
+        get: () => false,
+        set: () => assert.fail(`runtime changed authored ${name} visibility`),
+      });
+    }
+    initNativeVideo(f.root);
+  }
+});
 
 test('controls mode removes browser controls and exposes the existing custom toggle without auto starting', () => {
   const f = fixture(true);
