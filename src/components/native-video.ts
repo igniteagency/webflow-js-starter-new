@@ -1,57 +1,135 @@
+function show(element: HTMLElement | null, visible: boolean) {
+  if (!element) return;
+  element.hidden = !visible;
+  element.style.display = visible ? '' : 'none';
+}
+
+function time(seconds: number) {
+  const value = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+  return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`;
+}
+
 export function initNativeVideo(root: HTMLElement) {
-  const video = root.querySelector<HTMLVideoElement>('[data-video-el="player"]');
-  if (!video || root.dataset.videoReady) return;
-  root.dataset.videoReady = 'true';
-  const toggle = root.querySelector<HTMLButtonElement>('[data-video-el="toggle"]');
+  const find = <T extends HTMLElement>(name: string) =>
+    root.querySelector<T>(`[data-video-el="${name}"]`);
+  const video = find<HTMLVideoElement>('player');
+  const toggle = find<HTMLButtonElement>('toggle');
+  if (!video || !toggle || root.dataset.videoReady) return;
+  const controlsMode = video.dataset.videoPlayer?.toLowerCase() === 'true';
+  const doc = root.ownerDocument;
+  const controls = find<HTMLElement>('controls');
+  const status = find<HTMLElement>('status');
+  const seek = find<HTMLInputElement>('seek');
+  const elapsed = find<HTMLElement>('time');
+  const mute = find<HTMLButtonElement>('mute');
+  const volume = find<HTMLInputElement>('volume');
+  const fullscreen = find<HTMLButtonElement>('fullscreen');
+  const playIcon = find<HTMLElement>('play-icon');
+  const pauseIcon = find<HTMLElement>('pause-icon');
+  video.removeAttribute('controls');
+  video.controls = false;
   video.removeAttribute('autoplay');
   video.autoplay = false;
   video.playsInline = true;
-  if (video.dataset.videoPlayer?.toLowerCase() === 'true') {
+  video.muted = !controlsMode;
+  video.loop = !controlsMode;
+  if (controlsMode) {
     video.removeAttribute('muted');
     video.removeAttribute('loop');
-    video.muted = false;
-    video.loop = false;
-    video.controls = true;
-    video.style.objectFit = 'contain';
-    if (toggle) toggle.hidden = true;
-    return;
   }
-  video.muted = true;
-  video.loop = true;
-  video.style.objectFit = 'cover';
-  if (!toggle) return;
-  video.controls = false;
-  toggle.hidden = false;
-  toggle.style.display = '';
-  const playIcon = root.querySelector<HTMLElement>('[data-video-el="play-icon"]');
-  const pauseIcon = root.querySelector<HTMLElement>('[data-video-el="pause-icon"]');
-  const sync = () => {
-    toggle.setAttribute('aria-label', video.paused ? 'Play video' : 'Pause video');
-    for (const [icon, hidden] of [
-      [playIcon, !video.paused],
-      [pauseIcon, video.paused],
-    ] as const) {
-      if (icon) {
-        icon.hidden = hidden;
-        icon.style.display = hidden ? 'none' : '';
-      }
-    }
+  video.style.objectFit = controlsMode ? 'contain' : 'cover';
+  root.dataset.videoMode = controlsMode ? 'controls' : 'background';
+  root.dataset.videoReady = 'true';
+  show(toggle, true);
+  show(controls, true);
+  for (const element of [seek, elapsed, mute, volume]) show(element, controlsMode);
+  show(status, false);
+  const message = (text: string) => {
+    if (status) status.textContent = text;
+    show(status, !!text);
   };
-  let inView = false;
-  let userPaused = false;
-  const play = () =>
-    video.play().catch(() => {
+  const sync = () => {
+    const paused = video.paused || video.ended;
+    root.dataset.videoState = video.error ? 'error' : paused ? 'paused' : 'playing';
+    toggle.setAttribute('aria-label', paused ? 'Play video' : 'Pause video');
+    show(playIcon, paused);
+    show(pauseIcon, !paused);
+    if (elapsed) elapsed.textContent = `${time(video.currentTime)} / ${time(video.duration)}`;
+    if (seek) {
+      seek.disabled = !Number.isFinite(video.duration) || video.duration <= 0;
+      seek.max = String(seek.disabled ? 0 : video.duration);
+      seek.value = String(video.currentTime || 0);
+      seek.setAttribute('aria-valuetext', `${time(video.currentTime)} of ${time(video.duration)}`);
+    }
+    if (mute) {
+      const muted = video.muted || video.volume === 0;
+      mute.setAttribute('aria-label', muted ? 'Unmute video' : 'Mute video');
+      mute.setAttribute('aria-pressed', String(muted));
+    }
+    if (volume) volume.value = String(video.muted ? 0 : video.volume);
+  };
+  const play = () => {
+    message('');
+    return video.play().catch(() => {
+      message('Playback could not start. Press Play to try again.');
       sync();
     });
+  };
+  let userPaused = false;
+  let userStarted = false;
   toggle.addEventListener('click', () => {
-    userPaused = !video.paused;
-    if (video.paused) void play();
-    else video.pause();
+    userPaused = !video.paused && !video.ended;
+    userStarted = !userPaused;
+    if (userPaused) video.pause();
+    else void play();
   });
-  video.addEventListener('play', sync);
-  video.addEventListener('pause', sync);
+  for (const event of [
+    'play',
+    'pause',
+    'ended',
+    'timeupdate',
+    'durationchange',
+    'loadedmetadata',
+    'volumechange',
+  ])
+    video.addEventListener(event, sync);
+  video.addEventListener('error', () => {
+    message('Video could not load. Check the video source and try again.');
+    sync();
+  });
+  seek?.addEventListener('input', () => {
+    if (Number.isFinite(video.duration) && video.duration > 0)
+      video.currentTime = Math.min(video.duration, Math.max(0, Number(seek.value)));
+    sync();
+  });
+  mute?.addEventListener('click', () => {
+    const silent = video.muted || video.volume === 0;
+    if (video.volume === 0) video.volume = 1;
+    video.muted = !silent;
+    sync();
+  });
+  volume?.addEventListener('input', () => {
+    video.volume = Math.min(1, Math.max(0, Number(volume.value)));
+    video.muted = video.volume === 0;
+    sync();
+  });
+  const syncFullscreen = () => {
+    fullscreen?.setAttribute(
+      'aria-label',
+      doc.fullscreenElement === root ? 'Exit fullscreen' : 'Enter fullscreen'
+    );
+  };
+  show(fullscreen, controlsMode && !!doc.fullscreenEnabled && !!root.requestFullscreen);
+  fullscreen?.addEventListener('click', () => {
+    const operation =
+      doc.fullscreenElement === root ? doc.exitFullscreen() : root.requestFullscreen();
+    operation.catch(() => message('Fullscreen is unavailable in this browser.'));
+  });
+  doc.addEventListener('fullscreenchange', syncFullscreen);
+  syncFullscreen();
   sync();
-  const view = root.ownerDocument.defaultView;
+  if (controlsMode) return;
+  const view = doc.defaultView;
   const motion = view?.matchMedia('(prefers-reduced-motion: reduce)');
   const connection = (
     view?.navigator as Navigator & {
@@ -61,20 +139,20 @@ export function initNativeVideo(root: HTMLElement) {
       };
     }
   )?.connection;
+  let inView = !view?.IntersectionObserver;
   const updatePlayback = () => {
-    if (
+    const allowed =
       inView &&
-      !root.ownerDocument.hidden &&
+      !doc.hidden &&
       !userPaused &&
-      !motion?.matches &&
-      !connection?.saveData
-    )
-      void play();
+      (userStarted || (!motion?.matches && !connection?.saveData));
+    video.autoplay = allowed;
+    if (allowed) void play();
     else video.pause();
   };
   motion?.addEventListener('change', updatePlayback);
   connection?.addEventListener?.('change', updatePlayback);
-  root.ownerDocument.addEventListener('visibilitychange', updatePlayback);
+  doc.addEventListener('visibilitychange', updatePlayback);
   if (view?.IntersectionObserver) {
     new view.IntersectionObserver(
       ([entry]) => {
@@ -83,7 +161,7 @@ export function initNativeVideo(root: HTMLElement) {
       },
       { threshold: 0.05 }
     ).observe(root);
-  }
+  } else updatePlayback();
 }
 
 export function initNativeVideos(scope: ParentNode = document) {
