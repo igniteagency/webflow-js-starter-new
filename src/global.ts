@@ -36,6 +36,10 @@ function UIFunctions() {
   duplicateMarqueeList();
   initDetailsGroups();
   window.conditionalLoadScript(
+    '[data-video-controller="starter-native-v1"]',
+    'components/native-video.js'
+  );
+  window.conditionalLoadScript(
     '[data-el="switching-tabs-component"], .switcing-tabs_component, .switching-tabs_component',
     'components/switching-tabs.js'
   );
