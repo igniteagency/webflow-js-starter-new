@@ -23,7 +23,16 @@ function fixture(player = false, reduced = false) {
       this[name] = false;
     },
     addEventListener(name, fn) {
-      listeners.set(name, fn);
+      const previous = listeners.get(name);
+      listeners.set(
+        name,
+        previous
+          ? () => {
+              previous();
+              fn();
+            }
+          : fn
+      );
     },
     play() {
       this.paused = false;
@@ -49,6 +58,9 @@ function fixture(player = false, reduced = false) {
   const pauseIcon = { hidden: true, style: {} };
   const observer = {};
   const view = {
+    clearTimeout() {},
+    setTimeout() {},
+    queueMicrotask,
     matchMedia() {
       return { matches: reduced, addEventListener() {} };
     },
@@ -84,6 +96,11 @@ function fixture(player = false, reduced = false) {
   const root = {
     dataset: {},
     ownerDocument: document,
+    matches: () => false,
+    contains: () => false,
+    addEventListener(name, fn) {
+      this[name] = fn;
+    },
     querySelector(selector) {
       return elements[selector.match(/="([^"]+)"/)[1]];
     },
@@ -101,6 +118,67 @@ function fixture(player = false, reduced = false) {
     listeners,
   };
 }
+
+test('additional controls hide two seconds after leaving, without hiding shared playback', () => {
+  const f = fixture(true);
+  const pending = new Map();
+  let id = 0;
+  f.view.setTimeout = (fn, delay) => {
+    assert.equal(delay, 2000);
+    const token = ++id;
+    pending.set(token, () => {
+      pending.delete(token);
+      fn();
+    });
+    return token;
+  };
+  f.view.clearTimeout = (id) => pending.delete(id);
+  f.view.matchMedia = () => ({ matches: true, addEventListener() {} });
+  f.root.matches = () => false;
+  f.root.contains = () => false;
+  f.root.addEventListener = (name, fn) => {
+    f.root[name] = fn;
+  };
+  initNativeVideo(f.root);
+  f.video.play();
+  f.root.pointerleave();
+  assert.notEqual(f.root.dataset.videoControlsHidden, 'true');
+  for (const fn of [...pending.values()]) fn();
+  assert.equal(f.root.dataset.videoControlsHidden, 'true');
+  assert.equal(f.toggle.hidden, false);
+  assert.equal(f.elements.controls.hidden, false);
+  f.root.pointerenter();
+  assert.equal(f.root.dataset.videoControlsHidden, 'false');
+  assert.equal(pending.size, 0);
+  f.root.pointerleave();
+  f.document.activeElement = f.elements.seek;
+  f.root.contains = (e) => e === f.elements.seek;
+  f.root.focusin();
+  assert.equal(pending.size, 0);
+  f.document.activeElement = null;
+  f.video.pause();
+  assert.equal(f.root.dataset.videoControlsHidden, 'false');
+  assert.equal(pending.size, 0);
+  f.video.play();
+  f.video.ended = true;
+  f.listeners.get('ended')();
+  assert.equal(pending.size, 0);
+  f.video.ended = false;
+  f.video.error = {};
+  f.listeners.get('error')();
+  assert.equal(pending.size, 0);
+});
+
+test('video fit remains owned by native Webflow styling in both modes', () => {
+  for (const mode of [false, true]) {
+    for (const fit of [undefined, 'cover', 'contain']) {
+      const f = fixture(mode);
+      if (fit) f.video.style.objectFit = fit;
+      initNativeVideo(f.root);
+      assert.equal(f.video.style.objectFit, fit);
+    }
+  }
+});
 
 test('mute state swaps authored icon children without replacing button content', () => {
   const f = fixture(true);
@@ -172,7 +250,7 @@ test('controls mode removes browser controls and exposes the existing custom tog
   assert.equal(f.video.controls, false);
   assert.equal(f.video.paused, true);
   assert.equal(f.toggle.hidden, false);
-  assert.equal(f.video.style.objectFit, 'contain');
+  assert.equal(f.video.style.objectFit, undefined);
 });
 
 test('reduced motion and save data keep poster until explicit play; background tabs pause', async () => {
