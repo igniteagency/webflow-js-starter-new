@@ -102,6 +102,53 @@ function fixture(player = false, reduced = false) {
   };
 }
 
+test('mute state swaps authored icon children without replacing button content', () => {
+  const f = fixture(true);
+  const up = (f.elements['volume-up-icon'] = { hidden: true });
+  const off = (f.elements['volume-off-icon'] = { hidden: false });
+  Object.defineProperty(f.elements.mute, 'textContent', {
+    set: () => assert.fail('replaced icons'),
+  });
+  initNativeVideo(f.root);
+  assert.equal(up.hidden, false);
+  assert.equal(off.hidden, true);
+  f.elements.mute.click();
+  assert.equal(up.hidden, true);
+  assert.equal(off.hidden, false);
+  assert.equal(f.elements.mute['aria-label'], 'Unmute video');
+  f.video.muted = false;
+  f.video.volume = 0;
+  f.listeners.get('volumechange')();
+  assert.equal(off.hidden, false);
+  f.elements.mute.click();
+  assert.equal(up.hidden, false);
+  assert.equal(off.hidden, true);
+});
+
+test('fullscreen event swaps icons for this instance and restores on Escape', () => {
+  const f = fixture(true);
+  const enter = (f.elements['fullscreen-icon'] = { hidden: true });
+  const exit = (f.elements['fullscreen-exit-icon'] = { hidden: false });
+  Object.defineProperty(f.elements.fullscreen, 'textContent', {
+    set: () => assert.fail('replaced icons'),
+  });
+  initNativeVideo(f.root);
+  assert.equal(enter.hidden, false);
+  assert.equal(exit.hidden, true);
+  f.document.fullscreenElement = f.root;
+  f.document.fullscreenchange();
+  assert.equal(enter.hidden, true);
+  assert.equal(exit.hidden, false);
+  assert.equal(f.elements.fullscreen['aria-label'], 'Exit fullscreen');
+  f.document.fullscreenElement = {};
+  f.document.fullscreenchange();
+  assert.equal(exit.hidden, true);
+  f.document.fullscreenElement = null;
+  f.document.fullscreenchange();
+  assert.equal(enter.hidden, false);
+  assert.equal(f.elements.fullscreen['aria-label'], 'Enter fullscreen');
+});
+
 test('mode visibility remains owned by authored Webflow conditionals', () => {
   for (const mode of [false, true]) {
     const f = fixture(mode);
