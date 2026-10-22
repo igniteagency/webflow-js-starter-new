@@ -22,6 +22,16 @@ In essence, it uses bun to start a development server on [localhost:3000](http:/
 
 After duplicating or migrating the Starter, update the repository name in this README, `src/entry.ts`, and the Webflow site-head `entry.js` URL.
 
+### Number counters
+
+Add `data-el="counter"` to a plain-text number element, for example:
+
+```html
+<div data-el="counter">$12,345.50+</div>
+```
+
+`global.js` loads `components/counter.js` only when a matching element exists. CountUp is bundled in that separate component, not in the global bundle. Numbers count from zero once when scrolled into view, preserving surrounding text, decimal precision and authored comma grouping. Do not apply the attribute to a wrapper containing rich text or other nested elements.
+
 ### Output
 
 The project will process and output the files mentioned in the `files` const of `./bin/build.js` file. The output minified files will be in the `./dist/prod` folder for production (pushed to github), and in the `./dist/dev` used for local file serving (excluded from Git).
