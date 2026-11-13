@@ -38,6 +38,7 @@ function UIFunctions() {
   window.conditionalLoadScript('[data-el="counter"]', 'components/counter.js');
   duplicateMarqueeList();
   initDetailsGroups();
+  window.conditionalLoadScript('.section_tabbed-panels', 'components/tabbed-panels.js');
   window.conditionalLoadScript(
     '[data-video-controller="starter-native-v1"]',
     'components/native-video.js'
