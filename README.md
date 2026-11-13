@@ -158,6 +158,18 @@ For the uncommon case where direct sibling disclosures must remain independently
 </div>
 ```
 
+### KRB Tabbed Panels
+
+`global.js` conditionally loads `components/tabbed-panels.js` only when `.section_tabbed-panels` is present. Each section validates its `.tabbed-panels_component`, empty `.tabbed-panels_tabs`, and `.tabbed-panels_panels` slot before moving the original native buttons from direct-child `section.tabbed-panels_panel` items into the tablist. Each item needs one direct `button.tabbed-panels_tab` with a nonempty `.tabbed-panels_title`.
+
+- Initialization is atomic and idempotent. Empty, single-item or invalid groups retain readable sequential content.
+- `.tabbed-panels_step` receives `Step n`; optional `[data-tabbed-panel-step]` receives `Step n of total`. Numbering follows rendered item order, so editors maintain no totals.
+- Desktop uses vertical Up/Down navigation; at `<=767px`, horizontal Left/Right follows menu order and Up/Down keeps browser scrolling. Home/End, Enter/Space and click activate tabs with one tab in sequential focus order.
+- The module adds `data-tabbed-panels-ready="true"` to the component, reciprocal ARIA relationships and inactive-panel `hidden`, `inert` and `aria-hidden` states. Webflow CSS must keep inactive panels in the shared grid cell with `display:flex !important` plus `visibility:hidden` to retain the tallest panel's footprint. Without enhancement, CSS must hide the menu/triggers and keep panels sequential and readable. Focus indicators and reduced-motion rules also belong in Webflow CSS.
+- Runtime does not observe Designer authoring mutations. Add/delete/reorder changes take effect on normal page initialization. Existing starter details and Switching Tabs are unaffected.
+
+Run `bun run build` and then `node --test tests/*.test.mjs` (Node 24 recommended). The Tabbed Panels tests use the development-only jsdom dependency and exercise DOM behavior plus the built browser IIFE; they do not replace rendered layout or screen-reader checks.
+
 3. Whilst working locally, run `bun run dev` to start a development server on [localhost:3000](http://localhost:3000)
    - Alternatively, `pnpm run dev` or `npm run dev`
 

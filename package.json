@@ -27,6 +27,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "gsap": "^3.13.0",
+    "jsdom": "28.1.0",
     "prettier": "^3.6.2",
     "swiper": "^11.2.10",
     "tiny-glob": "^0.2.9",
