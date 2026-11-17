@@ -46,6 +46,7 @@ function UIFunctions() {
     '[data-el="switching-tabs-component"], .switcing-tabs_component, .switching-tabs_component',
     'components/switching-tabs.js'
   );
+  window.conditionalLoadScript('[data-network-map]', 'components/network-map.js');
 }
 
 function webflowOverrides() {
