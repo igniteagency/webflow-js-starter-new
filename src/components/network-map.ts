@@ -355,7 +355,8 @@ export function initNetworkMap(
       if (
         event.target instanceof HTMLDetailsElement &&
         active &&
-        !triggerIsVisible(active.trigger)
+        ((!event.target.open && event.target.contains(active.trigger)) ||
+          !triggerIsVisible(active.trigger))
       ) {
         close();
       }
