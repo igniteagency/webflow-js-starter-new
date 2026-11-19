@@ -197,6 +197,19 @@ After `bun run build`, serve the repository root (for example, `python3 -m http.
 `/tests/button-words.html` for real-browser checks of whitespace, plain-text safety, accessible
 attributes, edits, newly inserted labels, repeated initialization and mutation-loop prevention.
 
+### Optional navbar word masks
+
+Add `data-navbar-menu` to the native menu root and `data-el="navbar-word-label"` to each
+plain editable label span. The conditional `components/navbar-words.js` module uses the same
+`src/utils/word-labels.ts` helper as button labels, generating `.navbar_word > .navbar_word-text`
+only at runtime. Each word carries a zero-based `--word-index` for optional CSS staggering.
+Whitespace, native link attributes, details state and Popover interactions remain unchanged.
+CSS in Webflow owns clipping, entrances, focus visibility and reduced-motion behavior; keep
+unsplit labels readable if JavaScript is unavailable. No generated spans belong in Designer.
+
+`tests/navbar-words.html` verifies the navbar contract and coexistence with button labels in a
+real browser. It exposes results as `window.navbarWordsTestResult`.
+
 ### Publishing the code to CDN
 
 1. Run `bun run build` to generate the production files in `./dist/prod` folder

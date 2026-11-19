@@ -36,6 +36,10 @@ function initComponents() {
 
 function UIFunctions() {
   window.conditionalLoadScript(
+    '[data-navbar-menu] [data-el="navbar-word-label"]',
+    'components/navbar-words.js'
+  );
+  window.conditionalLoadScript(
     '.button_component [data-el="button-word-label"]',
     'components/button-words.js'
   );
