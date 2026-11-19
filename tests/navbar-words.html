@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <title>Navbar word splitting regression checks</title>
+  <h1>Navbar word splitting regression checks</h1>
+  <p>Serve the repository root after <code>bun run build</code> and open this page.</p>
+  <pre id="results">Running…</pre>
+  <div id="fixture" data-navbar-menu>
+    <a class="button_component" href="#destination">
+      <p id="initial-label" data-el="navbar-word-label">Present before initialization</p>
+    </a>
+  </div>
+  <script>
+    window.Webflow = { push: (callback) => callback() };
+  </script>
+  <script src="../dist/prod/components/navbar-words.js"></script>
+  <script type="module">
+    const results = [];
+    const fixture = document.querySelector('#fixture');
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+    const assert = (condition, message) => {
+      if (!condition) throw new Error(message);
+    };
+    const makeLabel = (text, optIn = true) => {
+      const button = document.createElement('a');
+      button.className = 'button_component';
+      button.href = '#destination';
+      button.setAttribute('aria-label', 'Authored accessible name');
+      const label = document.createElement('p');
+      label.className = 'button_text';
+      if (optIn) label.dataset.el = 'navbar-word-label';
+      label.textContent = text;
+      button.append(label);
+      fixture.append(button);
+      return label;
+    };
+    const test = async (name, callback) => {
+      await callback();
+      results.push(name);
+    };
+    try {
+      await test('splits labels present before initialization', async () => {
+        const label = document.querySelector('#initial-label');
+        assert(label.querySelectorAll('.navbar_word').length === 3, 'Initial label was missed');
+        assert(label.textContent === 'Present before initialization', 'Initial label changed');
+      });
+      await test('preserves whitespace, Unicode and literal markup without duplicate text', async () => {
+        const text = '  Read\tstories\nfrom  boarders & families — <img src=x> 👩🏽‍🎓\u00a0KRB ';
+        const label = makeLabel(text);
+        await settle();
+        assert(label.textContent === text, 'Original text changed');
+        assert(!label.querySelector('img'), 'Text became HTML');
+        assert(label.querySelectorAll('.navbar_word').length === 10, 'Unexpected word count');
+        assert(
+          [...label.querySelectorAll('.navbar_word')].every(
+            (word) =>
+              word.children.length === 1 && word.firstElementChild.matches('.navbar_word-text')
+          ),
+          'Invalid mask structure'
+        );
+        assert(!label.querySelector('[aria-hidden]'), 'Accessible text hidden');
+        assert(
+          label.parentElement.getAttribute('aria-label') === 'Authored accessible name',
+          'Authored name changed'
+        );
+        assert(label.parentElement.getAttribute('href') === '#destination', 'Link changed');
+      });
+      await test('leaves unmarked labels and authored rich text untouched', async () => {
+        const plain = makeLabel('No opt in', false);
+        const rich = makeLabel('');
+        const strong = document.createElement('strong');
+        strong.textContent = 'Preserve emphasis';
+        rich.append(strong);
+        await settle();
+        assert(!plain.children.length, 'Unmarked label split');
+        assert(rich.firstElementChild === strong, 'Rich content replaced');
+      });
+      await test('reconciles replacement text, same text and edits inside an existing word', async () => {
+        const label = makeLabel('Old copy');
+        await settle();
+        label.textContent = 'New  longer copy';
+        await settle();
+        assert(
+          label.textContent === 'New  longer copy' &&
+            label.querySelectorAll('.navbar_word').length === 3,
+          'New copy not split'
+        );
+        label.textContent = 'New  longer copy';
+        await settle();
+        assert(
+          label.querySelectorAll('.navbar_word').length === 3,
+          'Same-text replacement not split'
+        );
+        label.querySelector('.navbar_word-text').firstChild.data = 'Edited first';
+        await settle();
+        assert(
+          label.textContent === 'Edited first  longer copy' &&
+            label.querySelectorAll('.navbar_word').length === 4,
+          'Character-data edit not reconciled'
+        );
+        label.textContent = '';
+        await settle();
+        assert(!label.childNodes.length, 'Empty label has leftover markup');
+      });
+      await test('indexes words and excludes labels outside the menu root', async () => {
+        const label = makeLabel('Community Programs & Facilities');
+        const outside = document.createElement('span');
+        outside.dataset.el = 'navbar-word-label';
+        outside.textContent = 'Outside menu';
+        document.body.append(outside);
+        await settle();
+        assert(!outside.children.length, 'Unscoped label split');
+        assert(
+          [...label.querySelectorAll('.navbar_word')].every(
+            (word, index) => word.style.getPropertyValue('--word-index') === String(index)
+          ),
+          'Word indices incorrect'
+        );
+      });
+      await test('keeps native disclosure, Popover, icons and links intact', async () => {
+        const popover = document.createElement('div');
+        popover.popover = 'auto';
+        popover.dataset.navbarMenu = '';
+        const details = document.createElement('details');
+        details.open = true;
+        const summary = document.createElement('summary');
+        const label = document.createElement('span');
+        label.dataset.el = 'navbar-word-label';
+        label.textContent = 'About Us';
+        const icon = document.createElement('span');
+        icon.setAttribute('aria-hidden', 'true');
+        icon.textContent = '+';
+        summary.append(label, icon);
+        const link = document.createElement('a');
+        link.href = '#native-destination';
+        link.textContent = 'Page destination';
+        details.append(summary, link);
+        popover.append(details);
+        document.body.append(popover);
+        await settle();
+        assert(details.open, 'Authored details state changed');
+        assert(summary.lastChild === icon, 'Icon changed');
+        assert(link.getAttribute('href') === '#native-destination', 'Link target changed');
+        popover.showPopover();
+        summary.click();
+        assert(!details.open && popover.matches(':popover-open'), 'Native summary toggle failed');
+        summary.click();
+        assert(details.open, 'Native summary reopening failed');
+        popover.hidePopover();
+        assert(details.open, 'Popover close reset authored state');
+        popover.remove();
+      });
+      await test('coexists with the button helper without changing its markup', async () => {
+        const button = document.createElement('a');
+        button.className = 'button_component';
+        const label = document.createElement('span');
+        label.dataset.el = 'button-word-label';
+        label.textContent = 'Button remains compatible';
+        button.append(label);
+        fixture.append(button);
+        const script = document.createElement('script');
+        script.src = '../dist/prod/components/button-words.js';
+        await new Promise((resolve, reject) => {
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.append(script);
+        });
+        await settle();
+        const words = [...label.querySelectorAll('.button_word')];
+        assert(words.length === 3, 'Button helper did not split');
+        assert(!label.querySelector('.navbar_word'), 'Navbar helper touched button');
+        assert(
+          words.every((word) => !word.hasAttribute('style')),
+          'Button markup gained indices'
+        );
+        assert(label.textContent === 'Button remains compatible', 'Button text changed');
+        assert(document[Symbol.for('webflow.button-words')], 'Button state missing');
+      });
+      await test('is stable through repeated initialization and its own mutation callbacks', async () => {
+        const label = makeLabel('Repeat safely');
+        await settle();
+        const word = label.firstElementChild;
+        const state = document[Symbol.for('webflow.navbar-words')];
+        const script = document.createElement('script');
+        script.src = '../dist/prod/components/navbar-words.js?repeat';
+        await new Promise((resolve, reject) => {
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.append(script);
+        });
+        await settle();
+        assert(
+          document[Symbol.for('webflow.navbar-words')] === state,
+          'Duplicate observer installed'
+        );
+        assert(label.firstElementChild === word, 'Unchanged words replaced');
+        assert(!label.querySelector('.navbar_word .navbar_word'), 'Nested duplicate masks');
+        let changes = 0;
+        const observer = new MutationObserver((records) => {
+          changes += records.length;
+        });
+        observer.observe(label, { childList: true, subtree: true });
+        await settle();
+        await settle();
+        observer.disconnect();
+        assert(changes === 0, 'Mutation loop remains active');
+      });
+      window.navbarWordsTestResult = { passed: results.length, tests: results };
+      document.querySelector('#results').textContent = JSON.stringify(
+        window.navbarWordsTestResult,
+        null,
+        2
+      );
+    } catch (error) {
+      window.navbarWordsTestResult = {
+        passed: results.length,
+        tests: results,
+        error: String(error),
+      };
+      document.querySelector('#results').textContent = JSON.stringify(
+        window.navbarWordsTestResult,
+        null,
+        2
+      );
+      throw error;
+    }
+  </script>
+</html>
