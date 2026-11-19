@@ -68,9 +68,9 @@ export function initFilmReveal(root: HTMLElement) {
     (userStarted || (!motion.matches && !connection?.saveData && revealProgress() > 0.12));
   const sync = () => {
     const playing = !video.paused && !video.ended;
-    const label = failed ? 'Retry film' : playing ? 'Pause film' : 'Play film';
-    toggle.textContent = label;
+    const label = failed ? 'Retry video' : playing ? 'Pause video' : 'Play video';
     toggle.setAttribute('aria-label', label);
+    toggle.setAttribute('title', label);
     root.dataset.filmPlayback = playing ? 'playing' : 'paused';
     root.dataset.filmControlsVisible = String(
       revealProgress() > 0.12 || motion.matches || userStarted
@@ -79,7 +79,7 @@ export function initFilmReveal(root: HTMLElement) {
   const showError = () => {
     failed = true;
     root.dataset.filmVideoLoaded = 'false';
-    if (status) status.textContent = 'Film could not play. Select Retry film to try again.';
+    if (status) status.textContent = 'Video could not play. Select Retry video to try again.';
     sync();
   };
   const attach = () => {
@@ -110,7 +110,7 @@ export function initFilmReveal(root: HTMLElement) {
         return video.play().catch(() => {
           if (ticket !== generation || !eligible()) return;
           userPaused = true;
-          if (status) status.textContent = 'Select Play film to start playback.';
+          if (status) status.textContent = 'Select Play video to start playback.';
           sync();
         });
       })
