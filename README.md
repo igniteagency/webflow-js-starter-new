@@ -181,6 +181,22 @@ For the uncommon case where direct sibling disclosures must remain independently
 - Add any debug console logs in the code using the `console.debug` function instead of `console.log`. This way, they can be toggled on/off using the browser native "Verbose/Debug" level.
 - There is an optional debug mode setup for development that can execute conditional logic using `window.IS_DEBUG` check. Execute `window.setDebugMode(true)` in the browser console to enable the debug mode. Execute `window.setDebugMode(false)` to disable the mode.
 
+### Optional button word masks
+
+Add `data-el="button-word-label"` to the plain text label inside `.button_component` to opt in.
+`global.ts` conditionally loads `components/button-words.js`. The helper preserves the label's text
+and whitespace, wrapping each word in `.button_word > .button_word-text` for CSS masks and
+text-shadow motion authored in Webflow. Nonbreaking spaces stay within a word. It does not add an
+accessible-name duplicate, change link attributes, or animate anything in JavaScript.
+
+The helper handles newly inserted buttons and text replacements, including edits inside an existing
+word. Reinitializing or reloading the module keeps one observer per document. Unmarked labels and
+authored rich content are left alone. CSS must keep the unsplit label readable if the script is absent.
+
+After `bun run build`, serve the repository root (for example, `python3 -m http.server 8000`) and open
+`/tests/button-words.html` for real-browser checks of whitespace, plain-text safety, accessible
+attributes, edits, newly inserted labels, repeated initialization and mutation-loop prevention.
+
 ### Publishing the code to CDN
 
 1. Run `bun run build` to generate the production files in `./dist/prod` folder

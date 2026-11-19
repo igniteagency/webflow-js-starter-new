@@ -35,6 +35,10 @@ function initComponents() {
 }
 
 function UIFunctions() {
+  window.conditionalLoadScript(
+    '.button_component [data-el="button-word-label"]',
+    'components/button-words.js'
+  );
   window.conditionalLoadScript('[data-el="counter"]', 'components/counter.js');
   duplicateMarqueeList();
   initDetailsGroups();
