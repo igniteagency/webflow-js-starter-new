@@ -2,9 +2,9 @@ import type { Flip as FlipPlugin } from 'gsap/Flip';
 
 const GSAP_CDN = 'https://cdn.prod.website-files.com/gsap/3.15.0/';
 const IMAGE_SELECTOR =
-  '.image-wrapper:has(> .image-clip > .image > img), .blog_image-wrapper:has(img)';
+  '.image-wrapper:has(> .image-clip > .image > img), .blog_image-wrapper:has(img), .post-header_media:has(> img)';
 const FULL_IMAGE_SELECTOR =
-  '.section_full-image .image-wrapper, .section_media-spread[data-wf--section-media-spread--variant="feature-with-pair"] .media-spread_primary > .image-wrapper';
+  '.post-header_media:has(> img), .section_full-image .image-wrapper, .section_media-spread[data-wf--section-media-spread--variant="feature-with-pair"] .media-spread_primary > .image-wrapper, .section_content-section .content-section_layout:not(.w-variant-145102da-d2c7-fe63-d84b-36178f62d532):not(.w-variant-1455e40b-28f4-b80f-3eeb-90291432c808) > .image-wrapper';
 const HERO_SELECTOR = '.section_hero .image-wrapper';
 const INTRO_SELECTOR = '.intro_statement-text';
 const HEADING_SELECTOR =
@@ -33,12 +33,13 @@ export function scrollValues(
   top: number,
   height: number,
   viewport: number,
-  mobile: boolean
+  mobile: boolean,
+  photoHeight = height
 ) {
   const progress = clamp((viewport - top) / (viewport + height));
   const eased = progress * progress * (3 - 2 * progress);
   const distance =
-    height * (role === 'standalone' ? (mobile ? 0.01 : 0.02) : mobile ? 0.045 : 0.09);
+    photoHeight * (role === 'standalone' ? (mobile ? 0.01 : 0.02) : mobile ? 0.045 : 0.09);
   return {
     translate: role === 'hero' ? clamp(-top / height) * distance : (progress * 2 - 1) * distance,
     scale: role === 'full' ? 1 + (mobile ? 0.07 : 0.12) * (1 - eased) : 1,
@@ -161,7 +162,17 @@ export function initImageFallbacks() {
       const bounds = image.getBoundingClientRect();
       if (!bounds.height || bounds.bottom < -innerHeight || bounds.top > innerHeight * 2) return;
       const role = imageRole(image);
-      const values = scrollValues(role, bounds.top, bounds.height, innerHeight, compact());
+      const photoHeight =
+        image.querySelector<HTMLElement>(':scope > .image-clip')?.getBoundingClientRect().height ||
+        bounds.height;
+      const values = scrollValues(
+        role,
+        bounds.top,
+        bounds.height,
+        innerHeight,
+        compact(),
+        photoHeight
+      );
       image.dataset.motionScroll = 'fallback';
       image.style.setProperty('--krb-parallax', `${values.translate.toFixed(2)}px`);
       if (role !== 'hero') image.style.setProperty('--krb-image-scale', values.scale.toFixed(5));

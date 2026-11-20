@@ -14,6 +14,27 @@ test('full-image shrink and parallax share entry, midpoint and exit across a vie
   assert.deepEqual(exit, { translate: 54, scale: 1 });
   assert.deepEqual(scrollValues('full', -900, 600, 900, false), exit);
 });
+test('a below-photo caption extends the timeline without increasing photo travel', () => {
+  const photoHeight = 600,
+    wrapperHeight = 800,
+    viewport = 900;
+  assert.deepEqual(scrollValues('full', viewport, wrapperHeight, viewport, false, photoHeight), {
+    translate: -54,
+    scale: 1.12,
+  });
+  assert.deepEqual(scrollValues('full', 50, wrapperHeight, viewport, false, photoHeight), {
+    translate: 0,
+    scale: 1.06,
+  });
+  assert.deepEqual(
+    scrollValues('full', -wrapperHeight, wrapperHeight, viewport, false, photoHeight),
+    { translate: 54, scale: 1 }
+  );
+  assert.equal(
+    scrollValues('standalone', viewport, wrapperHeight, viewport, false, photoHeight).translate,
+    -12
+  );
+});
 test('hero begins without a translate jump and standalone/mobile movement stays reduced', () => {
   assert.equal(scrollValues('hero', 0, 600, 900, false).translate, 0);
   assert.equal(scrollValues('hero', -600, 600, 900, false).translate, 54);
