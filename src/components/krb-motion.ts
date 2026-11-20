@@ -383,7 +383,16 @@ function initText(statement: HTMLElement, kind: 'intro' | 'heading' | 'hero' = '
 function crestBounds() {
   const crest = document.querySelector('.navbar_component .logo_crest svg');
   const crestRect = crest?.getBoundingClientRect();
-  if (crestRect?.width && crestRect.height) return crestRect;
+  if (crestRect?.width && crestRect.height) {
+    const path = crest?.querySelector('path[fill]');
+    return {
+      left: crestRect.left,
+      top: crestRect.top,
+      width: crestRect.width,
+      height: crestRect.height,
+      color: path ? getComputedStyle(path).fill : undefined,
+    };
+  }
   const logo = document.querySelector('.navbar_component .logo_primary svg');
   const rect = logo?.getBoundingClientRect();
   if (!rect?.width || !rect.height) return;
@@ -393,6 +402,10 @@ function crestBounds() {
     top: rect.top + (rect.height - 158.442703 * unit) / 2,
     width: 88.320129 * unit,
     height: 101.798691 * unit,
+    color: (() => {
+      const path = logo?.querySelector('[fill*="--_theme---accent"]');
+      return path ? getComputedStyle(path).fill : undefined;
+    })(),
   };
 }
 
@@ -450,9 +463,16 @@ function prepareOpening() {
   }
   root.dataset.krbOpening = 'pending';
   root.dataset.krbHero = 'pending';
-  for (const event of ['resize', 'pagehide', 'wheel', 'touchstart', 'pointerdown', 'keydown']) {
+  for (const event of ['pagehide', 'wheel', 'touchstart', 'pointerdown', 'keydown']) {
     addEventListener(event, () => finish(), { passive: true, signal });
   }
+  addEventListener(
+    'resize',
+    () => {
+      if (sequence) finish();
+    },
+    { passive: true, signal }
+  );
   document.addEventListener('focusin', () => finish(), { signal });
   document.addEventListener(
     'visibilitychange',
@@ -519,6 +539,12 @@ function prepareOpening() {
           .to(panel, { yPercent: -100, duration: 1.6, ease }, 0.35)
           .add(travel.play(), 0.35)
           .call(() => hero(), [], 0.85);
+        if (destination.color)
+          sequence.to(
+            crest,
+            { color: destination.color, duration: 0.45, ease: 'power1.inOut' },
+            1.35
+          );
       } catch (error) {
         finish();
         console.error('KRB opening motion could not initialise.', error);

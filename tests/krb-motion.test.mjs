@@ -81,6 +81,14 @@ test('the opening arms before DOM content and immediately settles on user intera
   assert.equal(fixture.root.dataset.krbHero, 'settled');
   assert.equal(fixture.timers.size, 0);
 });
+test('initial viewport resize does not cancel a pending opening before measurement', () => {
+  const fixture = boot();
+  fixture.events.get('resize')();
+  assert.equal(fixture.root.dataset.krbOpening, 'pending');
+  assert.equal(fixture.root.dataset.krbHero, 'pending');
+  fixture.events.get('pointerdown')();
+  assert.equal(fixture.root.dataset.krbOpening, undefined);
+});
 test('the opening fails open if initialisation never completes', () => {
   const fixture = boot();
   [...fixture.timers.values()][0]();
