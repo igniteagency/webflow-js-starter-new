@@ -67,12 +67,19 @@ function boot({
     events = new Map(),
     timers = new Map();
   let timer = 0;
+  const listen = (name, fn) => {
+    const previous = events.get(name);
+    events.set(name, (...args) => {
+      previous?.(...args);
+      fn(...args);
+    });
+  };
   const context = {
     document: {
       documentElement: root,
       hidden: false,
       readyState: 'loading',
-      addEventListener: (name, fn) => events.set(name, fn),
+      addEventListener: listen,
     },
     window: {},
     location: { pathname, hash },
@@ -85,7 +92,7 @@ function boot({
       return timer;
     },
     clearTimeout: (id) => timers.delete(id),
-    addEventListener: (name, fn) => events.set(name, fn),
+    addEventListener: listen,
   };
   vm.runInNewContext(
     readFileSync(new URL('../dist/prod/components/krb-motion.js', import.meta.url), 'utf8'),
@@ -100,6 +107,7 @@ test('the opening arms before DOM content and immediately settles on user intera
   fixture.events.get('pointerdown')();
   assert.equal(fixture.root.dataset.krbOpening, undefined);
   assert.equal(fixture.root.dataset.krbHero, 'settled');
+  assert.equal(fixture.root.dataset.krbHeroCopy, undefined);
   assert.equal(fixture.timers.size, 0);
 });
 test('initial viewport resize does not cancel a pending opening before measurement', () => {
@@ -122,12 +130,20 @@ test('reduced motion, deep links, restored positions and back navigation stay un
     { hash: '#intro' },
     { scroll: 100 },
     { navigation: 'back_forward' },
-    { pathname: '/about' },
   ]) {
     const fixture = boot(options);
     assert.equal(fixture.root.dataset.krbOpening, undefined);
     assert.equal(fixture.timers.size, 0);
   }
+});
+
+test('internal pages prepare copy without the Home opening', () => {
+  const fixture = boot({ pathname: '/about' });
+  assert.equal(fixture.root.dataset.krbOpening, undefined);
+  assert.equal(fixture.root.dataset.krbHero, 'ready');
+  assert.equal(fixture.root.dataset.krbHeroCopy, 'pending');
+  fixture.events.get('pointerdown')();
+  assert.equal(fixture.root.dataset.krbHeroCopy, undefined);
 });
 
 test('simple reveal fallbacks are inert with native triggers and mark entered parents only without them', () => {
