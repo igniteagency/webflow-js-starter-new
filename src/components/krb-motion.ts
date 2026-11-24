@@ -564,16 +564,254 @@ function prepareOpening() {
   };
 }
 
+type HeroEntranceOptions = {
+  eligible: () => boolean;
+  designer: () => boolean;
+  plugins: () => Promise<void>;
+};
+
+/** The opening owns the image/crest; this controller owns only Hero copy. */
+export function prepareHeroEntrance({ eligible, designer, plugins }: HeroEntranceOptions) {
+  const root = document.documentElement;
+  const controller = new AbortController();
+  const { signal } = controller;
+  const motion = matchMedia('(prefers-reduced-motion: reduce)');
+  const tweens = new Set<gsap.core.Tween>();
+  const splits: SplitText[] = [];
+  const headings: HTMLElement[] = [];
+  const unfinished = new Set<HTMLElement>();
+  let settled = false;
+  let prepared = false;
+  let started = false;
+  let observer: MutationObserver | undefined;
+  let cancelFontWait = () => {};
+  let timeout: ReturnType<typeof setTimeout>;
+
+  const finish = () => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timeout);
+    cancelFontWait();
+    observer?.disconnect();
+    // Revert restores authored inline styles and SplitText's original semantics.
+    splits.forEach((split) => split.revert());
+    tweens.forEach((tween) => tween.revert());
+    headings.forEach((heading) => delete heading.dataset.krbMotion);
+    delete root.dataset.krbHeroCopy;
+    controller.abort();
+  };
+  const complete = (element: HTMLElement) => {
+    unfinished.delete(element);
+    if (started && !unfinished.size) queueMicrotask(finish);
+  };
+  const start = () => {
+    if (settled || started || !prepared) return;
+    if (root.dataset.krbHero === 'settled' || !eligible() || designer()) {
+      finish();
+      return;
+    }
+    if (root.dataset.krbHero !== 'ready') return;
+    started = true;
+    root.dataset.krbHeroCopy = 'running';
+    clearTimeout(timeout);
+    timeout = setTimeout(finish, 2000);
+    tweens.forEach((tween) => tween.play());
+    if (!unfinished.size) finish();
+  };
+
+  if (!eligible() || designer()) settled = true;
+  else {
+    root.dataset.krbHeroCopy = 'pending';
+    timeout = setTimeout(finish, 3200);
+    for (const event of [
+      'pagehide',
+      'beforeprint',
+      'wheel',
+      'touchstart',
+      'pointerdown',
+      'keydown',
+    ])
+      addEventListener(event, finish, { passive: true, signal });
+    addEventListener(
+      'pageshow',
+      (event) => {
+        if (event.persisted) finish();
+      },
+      { signal }
+    );
+    addEventListener(
+      'scroll',
+      () => {
+        if (scrollY > 8) finish();
+      },
+      { passive: true, signal }
+    );
+    document.addEventListener('focusin', finish, { signal });
+    document.addEventListener(
+      'visibilitychange',
+      () => {
+        if (document.hidden) finish();
+      },
+      { signal }
+    );
+    motion.addEventListener(
+      'change',
+      () => {
+        if (motion.matches) finish();
+      },
+      { signal }
+    );
+  }
+
+  const fontsReady = () =>
+    new Promise<void>((resolve) => {
+      const timer = setTimeout(resolve, 800);
+      cancelFontWait = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      void document.fonts.ready.then(cancelFontWait, cancelFontWait);
+    });
+
+  return {
+    finish,
+    async init() {
+      if (settled) return;
+      if (!eligible() || designer()) {
+        finish();
+        return;
+      }
+      const copies = [...document.querySelectorAll<HTMLElement>('.section_hero .hero_copy')];
+      if (!copies.length) {
+        finish();
+        return;
+      }
+      observer = new MutationObserver(() => {
+        if (root.dataset.krbHero === 'settled') finish();
+        else start();
+      });
+      observer.observe(root, { attributes: true, attributeFilter: ['data-krb-hero'] });
+      try {
+        await Promise.all([plugins(), fontsReady()]);
+        if (settled) return;
+        if (!eligible() || designer()) {
+          finish();
+          return;
+        }
+        const compact = matchMedia('(max-width: 767px)').matches;
+        // GSAP accepts an easing function; keep the same curve as the Astro reveal.
+        const easing = cubicBezier(0.22, 1, 0.36, 1);
+        for (const copy of copies) {
+          const heading = copy.querySelector<HTMLElement>('.hero_heading h1');
+          const children = [...copy.children].filter(
+            (element): element is HTMLElement =>
+              element instanceof HTMLElement &&
+              element.getClientRects().length > 0 &&
+              getComputedStyle(element).display !== 'none' &&
+              !element.classList.contains('w-condition-invisible')
+          );
+          let afterTitle = false;
+          for (const element of children) {
+            if (heading && element.contains(heading)) {
+              afterTitle = true;
+              unfinished.add(heading);
+              heading.dataset.krbMotion = 'hero';
+              headings.push(heading);
+              let completed = false;
+              let entrance: gsap.core.Tween | undefined;
+              const animate = (targets: HTMLElement[], splitLines: boolean) => {
+                if (entrance) tweens.delete(entrance);
+                entrance = gsap.fromTo(
+                  targets,
+                  {
+                    opacity: completed ? 1 : 0,
+                    yPercent: splitLines && !completed ? 110 : 0,
+                    y: !splitLines && !completed ? (compact ? 10 : 16) : 0,
+                  },
+                  {
+                    opacity: 1,
+                    yPercent: 0,
+                    y: 0,
+                    duration: completed ? 0 : compact ? 0.58 : 0.8,
+                    delay: completed ? 0 : compact ? 0.063 : 0.09,
+                    stagger: (index) =>
+                      completed
+                        ? 0
+                        : Math.min(index * (compact ? 0.035 : 0.065), compact ? 0.12 : 0.22),
+                    ease: easing,
+                    paused: !started,
+                    onComplete: () => {
+                      completed = true;
+                      complete(heading);
+                    },
+                  }
+                );
+                tweens.add(entrance);
+                return entrance;
+              };
+              if (document.fonts.status === 'loaded') {
+                splits.push(
+                  SplitText.create(heading, {
+                    type: 'lines',
+                    mask: 'lines',
+                    linesClass: 'krb-motion-line',
+                    autoSplit: true,
+                    // SplitText carries totalTime into the returned replacement tween.
+                    onSplit: (self) => animate(self.lines as HTMLElement[], true),
+                  })
+                );
+              } else animate([heading], false);
+            } else {
+              unfinished.add(element);
+              const tween = gsap.fromTo(
+                element,
+                { opacity: 0, y: compact ? 10 : 16 },
+                {
+                  opacity: 1,
+                  y: 0,
+                  duration: compact ? 0.48 : 0.62,
+                  delay: afterTitle ? (compact ? 0.112 : 0.16) : 0,
+                  ease: easing,
+                  paused: true,
+                  onComplete: () => complete(element),
+                }
+              );
+              tweens.add(tween);
+            }
+          }
+        }
+        prepared = true;
+        start();
+      } catch (error) {
+        finish();
+        console.error(
+          'KRB Hero entrance could not initialise; native content remains visible.',
+          error
+        );
+      }
+    },
+  };
+}
+
 if (typeof document !== 'undefined') {
   const opening = prepareOpening();
+  const heroEntrance = prepareHeroEntrance({
+    eligible: entranceEligible,
+    designer: isDesigner,
+    plugins: () => plugins(['SplitText']),
+  });
   const init = () => {
-    if (isDesigner()) return;
+    if (isDesigner()) {
+      heroEntrance.finish();
+      return;
+    }
     document.querySelectorAll<HTMLElement>('.section_intro[data-reveal]').forEach((section) => {
       section.dataset.krbOriginalReveal = section.getAttribute('data-reveal') || '';
       section.removeAttribute('data-reveal');
     });
     initImageFallbacks();
     void opening.play();
+    void heroEntrance.init();
     if (
       !reduced() &&
       document.querySelector(`${INTRO_SELECTOR},${HEADING_SELECTOR},${HERO_HEADING_SELECTOR}`)
@@ -587,9 +825,6 @@ if (typeof document !== 'undefined') {
           document
             .querySelectorAll<HTMLElement>(HEADING_SELECTOR)
             .forEach((element) => initText(element, 'heading'));
-          document
-            .querySelectorAll<HTMLElement>(HERO_HEADING_SELECTOR)
-            .forEach((element) => initText(element, 'hero'));
         })
         .catch((error) =>
           console.error('KRB intro plugins could not load; native text remains visible.', error)
