@@ -12,8 +12,8 @@ const itemMarkup = (
   <summary class="tabbed-panels_toggle"><span class="tabbed-panels_step">Step </span><span class="tabbed-panels_title">${label}</span><span data-wf--global-general-icon--icon="arrow-right" aria-hidden="true" class="icon_svg"></span></summary>
   <div class="tabbed-panels_body"><h3>${label}</h3><a href="/step-${index + 1}">Read more</a><img src="/step-${index + 1}.jpg" alt="Step ${index + 1}"></div>
 </details>`;
-const sectionMarkup = (layout = 'stacked-left', items = labels.map(itemMarkup).join('')) =>
-  `<section class="section_tabbed-panels" data-wf--section-tabbed-panels--section-controls-layout="${layout}"><div class="tabbed-panels_items" data-details-group="false">${items}</div></section>`;
+const sectionMarkup = (layout = 'tabs-left', items = labels.map(itemMarkup).join('')) =>
+  `<section class="section_tabbed-panels" data-wf--section-tabbed-panels--section-controls-layout="${layout}"><div class="tabbed-panels_items${['tabs-left', 'stacked-left'].includes(layout) ? ' w-variant-2befcd0f-d78f-c3b7-2336-22af926e3628' : ''}" data-details-group="false">${items}</div></section>`;
 
 function setup(markup = sectionMarkup(), mobile = false) {
   const dom = new JSDOM(markup, { url: 'https://krb-v2.webflow.io/admissions' });
@@ -153,8 +153,8 @@ test('mobile switches to horizontal keys and updates orientation across the brea
   assertSelection(doc, 1);
 });
 
-test('Top Tabs stays horizontal on desktop and mobile', () => {
-  const { dom, doc, media } = setup(sectionMarkup('top-tabs'));
+test('Tabs above stays horizontal on desktop and mobile', () => {
+  const { dom, doc, media } = setup(sectionMarkup('tabs-above'));
   initKrbTabbedPanels(doc);
   assert.equal(
     doc.querySelector('[role="tablist"]').getAttribute('aria-orientation'),
@@ -167,6 +167,24 @@ test('Top Tabs stays horizontal on desktop and mobile', () => {
     doc.querySelector('[role="tablist"]').getAttribute('aria-orientation'),
     'horizontal'
   );
+});
+
+test('left tab keyboard direction survives label and property renames', () => {
+  for (const label of ['tabs-left', 'stacked-left', 'renamed-again', null]) {
+    const { dom, doc, media } = setup();
+    const section = doc.querySelector('section');
+    if (label === null) section.removeAttribute('data-wf--section-tabbed-panels--section-controls-layout');
+    else section.setAttribute('data-wf--section-tabbed-panels--section-controls-layout', label);
+    initKrbTabbedPanels(doc);
+    const nav = doc.querySelector('[role="tablist"]');
+    assert.equal(nav.getAttribute('aria-orientation'), 'vertical');
+    assert.equal(key(dom, getTabs(doc)[0], 'ArrowDown'), true);
+    assertSelection(doc, 1);
+    media.setMobile(true);
+    assert.equal(nav.getAttribute('aria-orientation'), 'horizontal');
+    assert.equal(key(dom, getTabs(doc)[1], 'ArrowRight'), true);
+    assertSelection(doc, 2);
+  }
 });
 
 test('multiple sections are independent, IDs are unique, and repeated initialization is harmless', () => {

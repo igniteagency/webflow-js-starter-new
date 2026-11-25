@@ -1,6 +1,6 @@
 const SECTION_SELECTOR = '.section_tabbed-panels';
 const ITEMS_SELECTOR = '.tabbed-panels_items';
-const LAYOUT_ATTRIBUTE = 'data-wf--section-tabbed-panels--section-controls-layout';
+const LEFT_LAYOUT_CLASS = 'w-variant-2befcd0f-d78f-c3b7-2336-22af926e3628';
 const MOBILE_QUERY = '(max-width: 760px)';
 const INTERACTIVE_SELECTOR =
   'a, button, input, select, textarea, details, summary, iframe, script, style, [tabindex], [contenteditable]';
@@ -50,7 +50,7 @@ function initGroup(items: HTMLElement) {
   navigation.setAttribute('aria-label', items.getAttribute('aria-label') || 'Explore the steps');
   const mobile = view.matchMedia(MOBILE_QUERY);
   const setOrientation = () => {
-    const vertical = section.getAttribute(LAYOUT_ATTRIBUTE) === 'stacked-left' && !mobile.matches;
+    const vertical = items.classList.contains(LEFT_LAYOUT_CLASS) && !mobile.matches;
     navigation.setAttribute('aria-orientation', vertical ? 'vertical' : 'horizontal');
   };
   setOrientation();
