@@ -5,7 +5,7 @@ const GSAP_CDN = 'https://cdn.prod.website-files.com/gsap/3.15.0/';
 const IMAGE_SELECTOR =
   '.image-wrapper:has(> .image-clip > .image > img), .blog_image-wrapper:has(img), .post-header_media:has(> img)';
 const FULL_IMAGE_SELECTOR =
-  '.post-header_media:has(> img), .section_full-image .image-wrapper, .section_media-spread[data-wf--section-media-spread--variant="feature-with-pair"] .media-spread_primary > .image-wrapper, .section_content-section .content-section_layout:not(.w-variant-145102da-d2c7-fe63-d84b-36178f62d532):not(.w-variant-1455e40b-28f4-b80f-3eeb-90291432c808) > .image-wrapper';
+  '.post-header_media:has(> img), .section_full-image .image-wrapper, .section_media-spread .media-spread_primary.w-variant-9d441ddc-5dbf-45a5-97bb-676622139f78 > .image-wrapper, .section_content-section .content-section_layout:not(.w-variant-145102da-d2c7-fe63-d84b-36178f62d532):not(.w-variant-1455e40b-28f4-b80f-3eeb-90291432c808) > .image-wrapper';
 const HERO_SELECTOR = '.section_hero .image-wrapper';
 const INTRO_SELECTOR = '.intro_statement-text';
 const HEADING_SELECTOR =
