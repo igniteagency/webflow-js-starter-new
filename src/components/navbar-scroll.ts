@@ -28,7 +28,7 @@ export function initNavbarScroll(root: HTMLElement) {
     if (compact !== nextCompact) {
       compact = nextCompact;
       for (const part of parts) part.classList.toggle(OVER_IMAGE_VARIANT, !compact);
-      root.setAttribute('data-wf--section-navbar--variant', compact ? 'solid' : 'over-image');
+      root.setAttribute('data-wf--section-navbar--style', compact ? 'solid' : 'over-image');
     }
     if (y <= TOP_ZONE || panel?.matches(':popover-open') || root.querySelector(':focus-visible')) {
       hidden = false;

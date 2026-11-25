@@ -34,20 +34,20 @@ function fixture({ heroBottom = 720, y = 0, mobile = false } = {}) {
 test('both starting variants get the same over-hero and compact behaviour', () => {
   for (const mobile of [false, true]) {
     const f = fixture({ mobile });
-    assert.equal(f.root['data-wf--section-navbar--variant'], 'over-image');
+    assert.equal(f.root['data-wf--section-navbar--style'], 'over-image');
     assert.equal(f.root.dataset.navbarScrollHidden, 'false');
     f.scroll(120);
     assert.equal(f.root.dataset.navbarScrollHidden, 'true');
     f.scroll(110);
     assert.equal(f.root.dataset.navbarScrollHidden, 'false');
-    assert.equal(f.root['data-wf--section-navbar--variant'], 'over-image');
+    assert.equal(f.root['data-wf--section-navbar--style'], 'over-image');
     f.scroll(800);
-    assert.equal(f.root['data-wf--section-navbar--variant'], 'solid');
+    assert.equal(f.root['data-wf--section-navbar--style'], 'solid');
     assert.equal(f.root.dataset.navbarScrollHidden, 'true');
     f.scroll(780);
     assert.equal(f.root.dataset.navbarScrollHidden, 'false');
     f.scroll(0);
-    assert.equal(f.root['data-wf--section-navbar--variant'], 'over-image');
+    assert.equal(f.root['data-wf--section-navbar--style'], 'over-image');
     assert.equal(f.root.dataset.navbarScrollHidden, 'false');
   }
 });
@@ -82,11 +82,11 @@ test('open menu and keyboard focus keep the header available', () => {
 
 test('restored scroll positions, no-hero pages, and repeat initialization are safe', () => {
   const f = fixture({ y: 1000 });
-  assert.equal(f.root['data-wf--section-navbar--variant'], 'solid');
+  assert.equal(f.root['data-wf--section-navbar--style'], 'solid');
   assert.equal(f.root.dataset.navbarScrollHidden, 'false');
   const handler = f.events.get('scroll');
   initNavbarScroll(f.root);
   assert.equal(f.events.get('scroll'), handler);
   const plain = fixture({ heroBottom: null });
-  assert.equal(plain.root['data-wf--section-navbar--variant'], 'solid');
+  assert.equal(plain.root['data-wf--section-navbar--style'], 'solid');
 });
