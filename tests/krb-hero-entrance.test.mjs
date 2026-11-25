@@ -103,23 +103,21 @@ async function fixture(run, { loaded = true, compact = false, ready = 'ready' } 
       return tween;
     },
   });
-  set('SplitText', {
-    create(target, options) {
-      const split = {
-        reverted: false,
-        lines: [new Element('line')],
-        resplit() {
-          return options.onSplit(this);
-        },
-        revert() {
-          this.reverted = true;
-        },
-      };
-      splitters.push(split);
-      split.resplit();
-      return split;
-    },
-  });
+  const createSplit = (target, onSplit) => {
+    const split = {
+      reverted: false,
+      lines: [new Element('line')],
+      resplit() {
+        return onSplit(this);
+      },
+      revert() {
+        this.reverted = true;
+      },
+    };
+    splitters.push(split);
+    split.resplit();
+    return split;
+  };
   let controller;
   const state = {
     root,
@@ -136,6 +134,7 @@ async function fixture(run, { loaded = true, compact = false, ready = 'ready' } 
         eligible: () => true,
         designer: () => false,
         plugins: () => Promise.resolve(),
+        split: createSplit,
         ...options,
       });
       return controller;
@@ -203,7 +202,7 @@ test('font/width re-splits retain full-duration tweens until title completion', 
     await f.create().init();
     for (const progress of [0, 0.1, 0.3]) {
       const replacement = f.splitters[0].resplit();
-      // SplitText itself carries elapsed totalTime to each returned replacement.
+      // The split adapter carries elapsed time; this test covers Hero duration semantics.
       assert.equal(replacement.to.duration, 0.8, `duration at ${progress}`);
       assert.equal(replacement.from.yPercent, 110);
       assert.equal(replacement.from.opacity, 0);

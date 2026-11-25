@@ -1,4 +1,5 @@
 import type { Flip as FlipPlugin } from 'gsap/Flip';
+import { splitText, type TextSplit } from 'kugiri';
 
 const GSAP_CDN = 'https://cdn.prod.website-files.com/gsap/3.15.0/';
 const IMAGE_SELECTOR =
@@ -242,7 +243,82 @@ export function initImageFallbacks() {
   paint();
 }
 
-function initText(statement: HTMLElement, kind: 'intro' | 'heading' | 'hero' = 'intro') {
+/** Preserve the browser's line layout and the reveal's elapsed time on reflow. */
+export function splitLines(
+  element: HTMLElement,
+  animate: (split: TextSplit) => gsap.core.Tween,
+  failOpen: () => void
+) {
+  const originalStyle = element.getAttribute('style');
+  const controller = new AbortController();
+  let split: TextSplit | undefined;
+  let tween: gsap.core.Tween | undefined;
+  let frame = 0;
+  let disposed = false;
+  let width = element.getBoundingClientRect().width;
+  const restoreStyle = () => {
+    if (originalStyle === null) element.removeAttribute('style');
+    else element.setAttribute('style', originalStyle);
+  };
+  const revert = () => {
+    disposed = true;
+    cancelAnimationFrame(frame);
+    observer?.disconnect();
+    controller.abort();
+    tween?.kill();
+    split?.revert();
+    restoreStyle();
+  };
+  const rebuild = () => {
+    const elapsed = tween?.totalTime() ?? 0;
+    const paused = tween?.paused() ?? true;
+    const replacing = !!tween;
+    tween?.kill();
+    split?.revert();
+    restoreStyle();
+    split = splitText(element, {
+      type: ['lines'],
+      mask: { lines: '.15em' },
+      classes: { lines: 'krb-motion-line', mask: 'krb-motion-line-mask' },
+    });
+    tween = animate(split);
+    if (replacing) tween.totalTime(elapsed).paused(paused);
+  };
+  const schedule = () => {
+    if (disposed || frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      if (disposed) return;
+      try {
+        rebuild();
+      } catch (error) {
+        revert();
+        failOpen();
+        console.error('KRB text reflow skipped; native text remains visible.', error);
+      }
+    });
+  };
+  const observer =
+    typeof ResizeObserver === 'undefined'
+      ? undefined
+      : new ResizeObserver(() => {
+          const nextWidth = element.getBoundingClientRect().width;
+          if (Math.abs(nextWidth - width) < 0.5) return;
+          width = nextWidth;
+          schedule();
+        });
+  try {
+    rebuild();
+    observer?.observe(element);
+    document.fonts?.addEventListener('loadingdone', schedule, { signal: controller.signal });
+  } catch (error) {
+    revert();
+    throw error;
+  }
+  return { revert };
+}
+
+function initText(statement: HTMLElement, kind: 'intro' | 'heading' = 'intro') {
   if (statement.dataset.krbMotion || statement.querySelector('a,button,input') || reduced()) return;
   statement.dataset.krbMotion = kind;
   const original = statement.innerHTML;
@@ -257,20 +333,16 @@ function initText(statement: HTMLElement, kind: 'intro' | 'heading' | 'hero' = '
         return span;
       })
     );
-  let revealed =
-    statement.getBoundingClientRect().bottom <= 0 ||
-    (kind === 'hero' && document.documentElement.dataset.krbHero === 'settled');
+  let revealed = statement.getBoundingClientRect().bottom <= 0;
   let entrance: gsap.core.Tween | undefined;
   let colour: gsap.core.Tween | undefined;
-  let split: SplitText | undefined;
+  let split: ReturnType<typeof splitLines> | undefined;
   let observer: IntersectionObserver | undefined;
-  let heroObserver: MutationObserver | undefined;
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const controller = new AbortController();
   const { signal } = controller;
   const restore = () => {
     observer?.disconnect();
-    heroObserver?.disconnect();
     entrance?.kill();
     colour?.scrollTrigger?.kill();
     colour?.kill();
@@ -280,12 +352,9 @@ function initText(statement: HTMLElement, kind: 'intro' | 'heading' | 'hero' = '
     controller.abort();
   };
   try {
-    split = SplitText.create(statement, {
-      type: 'lines',
-      mask: 'lines',
-      linesClass: 'krb-motion-line',
-      autoSplit: true,
-      onSplit(self) {
+    split = splitLines(
+      statement,
+      (self) => {
         colour?.scrollTrigger?.kill();
         colour?.kill();
         const parts = statement.querySelectorAll<HTMLElement>('.krb-motion-phrase');
@@ -308,50 +377,25 @@ function initText(statement: HTMLElement, kind: 'intro' | 'heading' | 'hero' = '
           );
         entrance = gsap.from(self.lines, {
           yPercent: revealed ? 0 : 110,
-          duration: revealed
-            ? 0
-            : kind === 'hero'
-              ? compact()
-                ? 0.72
-                : 1.1
-              : compact()
-                ? 0.58
-                : 0.8,
-          delay: kind === 'hero' && !revealed ? 0.1 : 0,
+          duration: revealed ? 0 : compact() ? 0.58 : 0.8,
           stagger: (index) =>
-            kind === 'hero'
-              ? index * (compact() ? 0.11 : 0.17)
-              : Math.min(index * (compact() ? 0.035 : 0.065), compact() ? 0.12 : 0.22),
+            Math.min(index * (compact() ? 0.035 : 0.065), compact() ? 0.12 : 0.22),
           ease: cubicBezier(0.22, 1, 0.36, 1),
           paused: !revealed,
           onComplete: () => {
             revealed = true;
           },
         });
+        colour?.scrollTrigger?.refresh();
         return entrance;
       },
-    });
+      restore
+    );
     const reveal = () => {
-      revealed = true;
       entrance?.play();
       observer?.disconnect();
     };
-    if (kind === 'hero') {
-      const syncHero = () => {
-        const state = document.documentElement.dataset.krbHero;
-        if (state === 'ready') reveal();
-        else if (state === 'settled') {
-          revealed = true;
-          entrance?.progress(1);
-        }
-      };
-      heroObserver = new MutationObserver(syncHero);
-      heroObserver.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['data-krb-hero'],
-      });
-      syncHero();
-    } else if ('IntersectionObserver' in window) {
+    if ('IntersectionObserver' in window) {
       observer = new IntersectionObserver(
         (entries) => {
           if (entries.some((entry) => entry.isIntersecting)) reveal();
@@ -568,16 +612,22 @@ type HeroEntranceOptions = {
   eligible: () => boolean;
   designer: () => boolean;
   plugins: () => Promise<void>;
+  split?: typeof splitLines;
 };
 
 /** The opening owns the image/crest; this controller owns only Hero copy. */
-export function prepareHeroEntrance({ eligible, designer, plugins }: HeroEntranceOptions) {
+export function prepareHeroEntrance({
+  eligible,
+  designer,
+  plugins,
+  split: createSplit = splitLines,
+}: HeroEntranceOptions) {
   const root = document.documentElement;
   const controller = new AbortController();
   const { signal } = controller;
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const tweens = new Set<gsap.core.Tween>();
-  const splits: SplitText[] = [];
+  const splits: ReturnType<typeof splitLines>[] = [];
   const headings: HTMLElement[] = [];
   const unfinished = new Set<HTMLElement>();
   let settled = false;
@@ -593,7 +643,7 @@ export function prepareHeroEntrance({ eligible, designer, plugins }: HeroEntranc
     clearTimeout(timeout);
     cancelFontWait();
     observer?.disconnect();
-    // Revert restores authored inline styles and SplitText's original semantics.
+    // Restore native content and authored inline styles after playback.
     splits.forEach((split) => split.revert());
     tweens.forEach((tween) => tween.revert());
     headings.forEach((heading) => delete heading.dataset.krbMotion);
@@ -751,14 +801,7 @@ export function prepareHeroEntrance({ eligible, designer, plugins }: HeroEntranc
               };
               if (document.fonts.status === 'loaded') {
                 splits.push(
-                  SplitText.create(heading, {
-                    type: 'lines',
-                    mask: 'lines',
-                    linesClass: 'krb-motion-line',
-                    autoSplit: true,
-                    // SplitText carries totalTime into the returned replacement tween.
-                    onSplit: (self) => animate(self.lines as HTMLElement[], true),
-                  })
+                  createSplit(heading, (self) => animate(self.lines as HTMLElement[], true), finish)
                 );
               } else animate([heading], false);
             } else {
@@ -798,7 +841,7 @@ if (typeof document !== 'undefined') {
   const heroEntrance = prepareHeroEntrance({
     eligible: entranceEligible,
     designer: isDesigner,
-    plugins: () => plugins(['SplitText']),
+    plugins: () => plugins([]),
   });
   const init = () => {
     if (isDesigner()) {
@@ -816,8 +859,9 @@ if (typeof document !== 'undefined') {
       !reduced() &&
       document.querySelector(`${INTRO_SELECTOR},${HEADING_SELECTOR},${HERO_HEADING_SELECTOR}`)
     ) {
-      void plugins(['SplitText', 'ScrollTrigger'])
-        .then(() => {
+      void plugins(['ScrollTrigger'])
+        .then(async () => {
+          await document.fonts.ready;
           if (reduced()) return;
           document
             .querySelectorAll<HTMLElement>(INTRO_SELECTOR)
